@@ -1,4 +1,4 @@
-import { Menu, Phone, ShieldCheck, Siren, X } from "lucide-react";
+import { Menu, Phone, ShieldCheck, X } from "lucide-react";
 import { useState } from "react";
 import { Link, NavLink, Outlet } from "react-router-dom";
 import { cx } from "../lib/format";
@@ -33,14 +33,8 @@ export default function PublicLayout() {
   return (
     <div className="flex min-h-screen flex-col">
       <div className="bg-ink text-[13px] text-white/85">
-        <div className="container-x flex items-center justify-between gap-3 py-2">
-          <p className="flex items-center gap-2">
-            <Siren size={14} className="shrink-0 text-rose-300" />
-            <span>
-              Not for emergencies. In an emergency call <a className="font-semibold text-white underline" href="tel:999">999</a> or <a className="font-semibold text-white underline" href="tel:112">112</a>.
-            </span>
-          </p>
-          <Link to="/contact" className="hidden items-center gap-1.5 font-medium hover:text-white sm:flex">
+        <div className="container-x flex items-center justify-end gap-3 py-2">
+          <Link to="/contact" className="flex items-center gap-1.5 font-medium hover:text-white">
             <Phone size={13} /> Need help booking? We can call you
           </Link>
         </div>
