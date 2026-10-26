@@ -44,7 +44,7 @@ export default function Contact() {
           </Card>
           <Card className="flex gap-4 p-5">
             <MessageCircle className="mt-0.5 shrink-0 text-brand-600" />
-            <div><p className="font-bold">WhatsApp and SMS</p><p className="text-sm text-ink-soft">Reply to any Unganisha message to reach a coordinator. Opening hours and numbers are confirmed at launch.</p></div>
+            <div><p className="font-bold">WhatsApp and SMS</p><p className="text-sm text-ink-soft">Reply to any of our messages to reach a coordinator. Opening hours and numbers are confirmed at launch.</p></div>
           </Card>
         </div>
         <div>

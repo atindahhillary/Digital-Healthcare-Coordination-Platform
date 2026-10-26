@@ -2,6 +2,7 @@ import { Menu, Phone, ShieldCheck, Siren, X } from "lucide-react";
 import { useState } from "react";
 import { Link, NavLink, Outlet } from "react-router-dom";
 import { cx } from "../lib/format";
+import { InstallButton } from "./Network";
 
 export function Logo({ light }: { light?: boolean }) {
   return (
@@ -46,7 +47,7 @@ export default function PublicLayout() {
       </div>
       <header className="sticky top-0 z-40 border-b border-line/70 bg-white/85 backdrop-blur-xl">
         <div className="container-x flex h-16 items-center justify-between gap-4">
-          <Link to="/" className="focus-ring rounded-lg" aria-label="Unganisha Care home">
+          <Link to="/" className="focus-ring rounded-lg" aria-label="Home">
             <Logo />
           </Link>
           <nav className="hidden items-center gap-1 xl:flex" aria-label="Main">
@@ -57,6 +58,7 @@ export default function PublicLayout() {
             ))}
           </nav>
           <div className="flex items-center gap-2">
+            <InstallButton className="hidden md:inline-flex" />
             <Link to="/app/patient" className="hidden h-10 items-center whitespace-nowrap rounded-xl px-3 text-sm font-semibold text-ink-soft hover:text-ink sm:inline-flex focus-ring">
               Sign in
             </Link>
@@ -117,7 +119,7 @@ export default function PublicLayout() {
         </div>
         <div className="border-t border-white/10">
           <div className="container-x flex flex-wrap justify-between gap-2 py-5 text-xs text-white/50">
-            <p>© {new Date().getFullYear()} Unganisha Care (working name). Clickable prototype: all providers, patients and data are fictional.</p>
+            <p>© {new Date().getFullYear()} Unganisha Care. Clickable prototype: all providers, patients and data are fictional.</p>
             <p>Emergency: 999 / 112 · Kenya Red Cross: 1199</p>
           </div>
         </div>

@@ -84,7 +84,7 @@ export default function Home() {
               Care that <span className="bg-gradient-to-r from-brand-600 to-sky2-600 bg-clip-text text-transparent">shows up</span>, every time you need it.
             </h1>
             <p className="mt-5 max-w-xl text-lg leading-relaxed text-ink-soft">
-              Unganisha connects you with verified specialists, laboratories, pharmacies and patient organisations, and then makes sure the care you booked actually happens. If a doctor is late, you are told early and offered a real next step.
+              We connect you with verified specialists, laboratories, pharmacies and patient organisations, and then makes sure the care you booked actually happens. If a doctor is late, you are told early and offered a real next step.
             </p>
             <div className="mt-8 flex flex-wrap gap-3">
               <Link to="/find-care" className="inline-flex h-12 items-center gap-2 rounded-xl bg-brand-600 px-6 font-semibold text-white shadow-sm hover:bg-brand-700 focus-ring">
@@ -238,7 +238,7 @@ export default function Home() {
           <div>
             <p className="text-sm font-bold uppercase tracking-wider text-brand-700">Designed for everyone</p>
             <h2 className="mt-3 text-3xl font-extrabold tracking-tight sm:text-4xl">Works on an ordinary phone and an ordinary connection</h2>
-            <p className="mt-4 text-lg text-ink-soft">Not everyone has a smartphone or data bundles. Unganisha meets patients where they are.</p>
+            <p className="mt-4 text-lg text-ink-soft">Not everyone has a smartphone or data bundles, so we meet patients where they are.</p>
           </div>
           <div className="grid gap-3 sm:grid-cols-2">
             {[

@@ -3,7 +3,7 @@ export default {
   content: ["./index.html", "./src/**/*.{ts,tsx}"],
   theme: {
     extend: {
-      fontFamily: { sans: ["Inter", "system-ui", "sans-serif"] },
+      fontFamily: { sans: ["Inter Variable", "Inter", "system-ui", "sans-serif"] },
       colors: {
         ink: { DEFAULT: "#0B1B2B", soft: "#425466", mute: "#6B7C93" },
         brand: { 50: "#ECFBF8", 100: "#CFF5EE", 200: "#9FE9DC", 300: "#62D5C3", 400: "#2DBBA8", 500: "#109E8D", 600: "#0A7F73", 700: "#0B655D", 800: "#0D514C", 900: "#0E4340" },

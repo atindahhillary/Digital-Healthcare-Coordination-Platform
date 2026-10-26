@@ -85,7 +85,7 @@ export default function Simulator() {
               </div>
               <div className="rounded-2xl bg-white p-3.5 shadow-card ring-1 ring-line">
                 <p className="text-[11px] font-semibold uppercase tracking-wide text-ink-mute">SMS · works on any phone</p>
-                <p className="mt-1 text-[13px] text-ink">UNGANISHA: {p.body}</p>
+                <p className="mt-1 text-[13px] text-ink">{p.body}</p>
               </div>
               <div className="rounded-2xl bg-white p-3.5 shadow-card ring-1 ring-line">
                 <p className="flex items-center gap-2 text-[13px] font-semibold text-ink"><ClipboardCheck size={15} className="text-brand-600" /> Every step is logged</p>

@@ -7,6 +7,7 @@ import { Link, NavLink, Outlet, useLocation, useNavigate } from "react-router-do
 import { byId, labs, pharmacies, specialists } from "../data/seed";
 import { ago, cx } from "../lib/format";
 import { patients, useStore, type Role } from "../store/store";
+import { InstallButton } from "./Network";
 import { Logo } from "./PublicLayout";
 import { Avatar } from "./ui";
 
@@ -130,6 +131,7 @@ export default function AppLayout() {
               </p>
             </div>
             <div className="flex items-center gap-2">
+              <InstallButton className="hidden sm:inline-flex" />
               <div className="relative" ref={bellRef}>
                 <button onClick={() => setBell(!bell)} className="relative grid h-10 w-10 place-items-center rounded-xl border border-line bg-white text-ink-soft hover:text-ink focus-ring" aria-label={`Notifications, ${unread} unread`}>
                   <Bell size={18} />

@@ -1,4 +1,5 @@
-import { createContext, useContext, useEffect, useMemo, useReducer, type ReactNode } from "react";
+import { createContext, useCallback, useContext, useEffect, useMemo, useReducer, useRef, type ReactNode } from "react";
+import { toast } from "../components/Toaster";
 import { byId, specialists, slotsFor, type Mode } from "../data/seed";
 
 export type Role = "patient" | "specialist" | "lab" | "pharmacy" | "org" | "admin";
@@ -686,8 +687,38 @@ function load(): State {
 
 const Ctx = createContext<{ state: State; dispatch: (a: Action) => void } | null>(null);
 
+// Instant confirmation for every action, so a tap never feels like it did nothing.
+function feedback(a: Action, s: State): [string, "ok" | "warn" | "info", string?] | undefined {
+  switch (a.type) {
+    case "book": return ["Booked. Confirmation sent by SMS", "ok"];
+    case "ready": return ["Readiness confirmed. Patient notified", "ok"];
+    case "delay": return a.minutes > s.rules.recoveryAfterMin ? ["Delay reported. Service recovery started for the patient", "warn"] : ["Delay reported. Patient told the new start time", "info"];
+    case "noShow": return ["No response flagged. Patient offered options", "warn"];
+    case "choose": return [{ wait: "You chose to wait. We'll update you", alternative: "Done. Your new doctor is ready", reschedule: "Rescheduled free of charge", refund: "Refund sent to M-Pesa" }[a.option], "ok"];
+    case "start": return ["Consultation started", "ok"];
+    case "complete": return ["Consultation saved. Orders sent", "ok"];
+    case "cancel": return ["Appointment cancelled. Refund issued", "ok"];
+    case "reschedule": return ["Rescheduled. New time sent by SMS", "ok"];
+    case "rate": return ["Thanks for rating your visit", "ok"];
+    case "labStatus": return ["Order updated. Patient notified", "ok"];
+    case "labRelease": return ["Results released securely", "ok"];
+    case "rxStatus": return a.status === "issue" ? ["Patient told about the stock issue", "warn"] : ["Order updated. Patient notified", "ok"];
+    case "rxStock": return ["Stock and price saved", "ok", "rxStock"];
+    case "refill": return ["Refill requested from your pharmacy", "ok"];
+    case "consent": return ["Sharing preference updated", "ok", "consent"];
+    case "verify": return [a.status === "approved" ? "Provider approved" : "More information requested", "ok"];
+    case "rules": return ["Service rule saved", "ok", "rules"];
+    case "complaint": return [`Complaint marked ${a.status}`, "ok"];
+    case "feedback": return ["Feedback sent to the platform team", "ok"];
+    case "referral": return ["Referral accepted", "ok"];
+    case "enrol": return ["Care plan updated", "ok", "enrol"];
+    case "reset": return ["Demo data reset", "info"];
+    default: return undefined;
+  }
+}
+
 export function StoreProvider({ children }: { children: ReactNode }) {
-  const [state, dispatch] = useReducer(reducer, undefined, load);
+  const [state, rawDispatch] = useReducer(reducer, undefined, load);
   useEffect(() => {
     try {
       localStorage.setItem(KEY, JSON.stringify(state));
@@ -695,7 +726,14 @@ export function StoreProvider({ children }: { children: ReactNode }) {
       /* ignore */
     }
   }, [state]);
-  const value = useMemo(() => ({ state, dispatch }), [state]);
+  const rulesRef = useRef(state);
+  rulesRef.current = state;
+  const dispatch = useCallback((a: Action) => {
+    rawDispatch(a);
+    const f = feedback(a, rulesRef.current);
+    if (f) toast(navigator.onLine ? f[0] : `${f[0]}. Saved on this device while offline`, f[1], f[2]);
+  }, []);
+  const value = useMemo(() => ({ state, dispatch }), [state, dispatch]);
   return <Ctx.Provider value={value}>{children}</Ctx.Provider>;
 }
 

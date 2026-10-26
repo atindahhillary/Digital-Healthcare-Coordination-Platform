@@ -1,6 +1,8 @@
 import { lazy, Suspense, useEffect } from "react";
 import { Navigate, Route, Routes, useLocation } from "react-router-dom";
 import AppLayout from "./components/AppLayout";
+import { NetworkStatus } from "./components/Network";
+import Toaster from "./components/Toaster";
 import PublicLayout from "./components/PublicLayout";
 import { PatientAppointments, PatientCare, PatientHome, PatientRecords } from "./pages/app/patient";
 
@@ -28,14 +30,28 @@ import Trust from "./pages/public/Trust";
 
 function ScrollTop() {
   const { pathname } = useLocation();
-  useEffect(() => window.scrollTo(0, 0), [pathname]);
+  useEffect(() => window.scrollTo({ top: 0, behavior: "instant" }), [pathname]);
   return null;
 }
 
+// Warm every portal in the background once the first page is up, so switching
+// roles never waits on the network.
+function usePrefetch() {
+  useEffect(() => {
+    const go = () => [admin, specialist, () => import("./pages/app/lab"), () => import("./pages/app/pharmacy"), () => import("./pages/app/org")].forEach((f) => f().catch(() => {}));
+    const w = window as Window & { requestIdleCallback?: (f: () => void) => void };
+    if (w.requestIdleCallback) w.requestIdleCallback(go);
+    else setTimeout(go, 1500);
+  }, []);
+}
+
 export default function App() {
+  usePrefetch();
   return (
     <>
       <ScrollTop />
+      <NetworkStatus />
+      <Toaster />
       <Suspense fallback={<div className="grid min-h-[50vh] place-items-center text-sm text-ink-mute">Loading…</div>}>
       <Routes>
         <Route element={<PublicLayout />}>

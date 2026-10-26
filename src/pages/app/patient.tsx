@@ -463,7 +463,7 @@ function FeedbackCard() {
     <Card className="p-5">
       <p className="font-bold">Tell us how we are doing</p>
       {sent ? <p className="mt-3 rounded-xl bg-emerald-50 p-3 text-sm text-emerald-800">Thank you. The platform team will reply within 2 working days.</p> : (
-        <form className="mt-3 space-y-3" onSubmit={(e) => { e.preventDefault(); dispatch({ type: "feedback", about: "Unganisha Care", category: cat, text }); setSent(true); }}>
+        <form className="mt-3 space-y-3" onSubmit={(e) => { e.preventDefault(); dispatch({ type: "feedback", about: "The platform", category: cat, text }); setSent(true); }}>
           <Field label="Topic">
             <select className={inputCls} value={cat} onChange={(e) => setCat(e.target.value)}>
               {["General feedback", "Late start", "Result delay", "Medicine issue", "Billing or refund"].map((c) => <option key={c}>{c}</option>)}
