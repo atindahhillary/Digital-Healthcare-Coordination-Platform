@@ -14,7 +14,7 @@ export function DoctorAvatar({ size = 56 }: { size?: number }) {
     <svg width={size} height={size} viewBox="7 9 50 50" aria-hidden className="shrink-0">
       <defs>
         <linearGradient id="da-bg" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stopColor="#CFF5EE" /><stop offset="1" stopColor="#62D5C3" /></linearGradient>
-        <clipPath id="da-clip"><circle cx="32" cy="32" r="32" /></clipPath>
+        <clipPath id="da-clip"><circle cx="32" cy="34" r="25" /></clipPath>
       </defs>
       <g clipPath="url(#da-clip)">
         <rect width="64" height="64" fill="url(#da-bg)" />
