@@ -20,8 +20,12 @@
     transition-duration: 40ms;
   }
   /* Lite mode (slow, data-saver or offline): no animation or blur, so taps respond immediately. */
+  /* Shorten rather than remove animations: removing and restoring them would
+     replay every fade-in when the connection comes back. */
   html.lite *, html.lite *::before, html.lite *::after {
-    animation: none !important;
+    animation-duration: 0.01ms !important;
+    animation-delay: 0s !important;
+    animation-iteration-count: 1 !important;
     backdrop-filter: none !important;
   }
   body {
