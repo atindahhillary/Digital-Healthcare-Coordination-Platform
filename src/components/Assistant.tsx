@@ -1,6 +1,6 @@
 import { ArrowUp, Bot, CalendarClock, MessageCircle, Phone, Siren, X } from "lucide-react";
 import { useEffect, useRef, useState, type ReactNode } from "react";
-import { useNavigate } from "react-router-dom";
+import { useLocation, useNavigate } from "react-router-dom";
 import { byId, pathways, SPECIALTIES, specialists } from "../data/seed";
 import { cx, dateTime, kes } from "../lib/format";
 import { useStore, type State } from "../store/store";
@@ -96,6 +96,7 @@ function nextAppt(s: State) {
 export default function Assistant() {
   const { state, dispatch } = useStore();
   const navigate = useNavigate();
+  const inApp = useLocation().pathname.startsWith("/app");
   const [open, setOpen] = useState(false);
   const [lang, setLang] = useState<Lang>("en");
   const [input, setInput] = useState("");
@@ -297,7 +298,7 @@ export default function Assistant() {
         onClick={() => setOpen(!open)}
         aria-label={open ? "Close assistant" : "Open care assistant"}
         aria-expanded={open}
-        className={cx("fixed bottom-20 right-4 z-[65] grid h-14 w-14 place-items-center rounded-full bg-brand-600 text-white shadow-lift hover:bg-brand-700 focus-ring lg:bottom-6 lg:right-6", !open && "animate-pulse-soft")}
+        className={cx("fixed right-4 z-[65]", inApp ? "bottom-[5.75rem]" : "bottom-5", " grid h-14 w-14 place-items-center rounded-full bg-brand-600 text-white shadow-lift hover:bg-brand-700 focus-ring lg:bottom-6 lg:right-6", !open && "animate-pulse-soft")}
       >
         {open ? <X size={24} /> : <MessageCircle size={24} />}
       </button>
@@ -305,7 +306,7 @@ export default function Assistant() {
         <section
           role="dialog"
           aria-label="Care assistant"
-          className="fixed inset-x-2 bottom-36 top-16 z-[64] flex flex-col overflow-hidden rounded-3xl border border-line bg-white shadow-lift animate-pop sm:inset-x-auto sm:right-6 sm:top-auto sm:h-[600px] sm:max-h-[calc(100vh-8rem)] sm:w-[380px] lg:bottom-24"
+          className={cx("fixed inset-x-2 top-16 z-[64]", inApp ? "bottom-[10rem]" : "bottom-24", " flex flex-col overflow-hidden rounded-3xl border border-line bg-white shadow-lift animate-pop sm:inset-x-auto sm:right-6 sm:top-auto sm:h-[600px] sm:max-h-[calc(100vh-8rem)] sm:w-[380px] lg:bottom-24")}
         >
           <header className="flex items-center gap-3 bg-gradient-to-r from-brand-600 to-brand-700 px-4 py-3 text-white">
             <span className="grid h-9 w-9 place-items-center rounded-full bg-white/15"><Bot size={18} /></span>

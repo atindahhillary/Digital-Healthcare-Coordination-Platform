@@ -3,7 +3,7 @@ import { useState } from "react";
 import { Link, Navigate, useParams } from "react-router-dom";
 import { BookingModal, nextSlot } from "../../components/Booking";
 import { Avatar, Badge, Button, Card } from "../../components/ui";
-import { byId, specialists } from "../../data/seed";
+import { byId, photoOf, specialists } from "../../data/seed";
 import { date, kes, time } from "../../lib/format";
 
 export default function ProviderProfile() {
@@ -19,9 +19,20 @@ export default function ProviderProfile() {
       </div>
       <div className="container-x grid gap-6 lg:grid-cols-[1fr_360px]">
         <div className="space-y-6">
-          <Card className="p-6">
+          <Card className="overflow-hidden">
+            <div className="grid sm:grid-cols-[260px_1fr]">
+              <div className="relative h-72 bg-gradient-to-b from-sky2-50 to-brand-100 sm:h-full sm:min-h-[300px]">
+                {photoOf(sp.name) ? <img src={photoOf(sp.name)} alt="" className="absolute inset-0 h-full w-full object-cover object-top" /> : <span className="grid h-full place-items-center"><Avatar name={sp.name} hue={sp.hue} size={120} /></span>}
+                <span className="absolute left-3 top-3 inline-flex items-center gap-1 rounded-full bg-white/95 px-2.5 py-1 text-xs font-bold shadow-sm"><Star size={12} className="fill-amber-400 text-amber-400" />{sp.rating} · {sp.reviews} reviews</span>
+              </div>
+              <div className="flex flex-col">
+                <div className="grid grid-cols-3 divide-x divide-white/20 bg-brand-600 text-white">
+                  {[[`${sp.years} yrs`, "Experience"], [`${sp.punctuality}%`, "On time"], [`${sp.avgWait} min`, "Avg wait"]].map(([v, l]) => (
+                    <div key={l} className="px-3 py-3.5 text-center"><p className="text-lg font-extrabold leading-none">{v}</p><p className="mt-1 text-[11px] font-medium text-white/80">{l}</p></div>
+                  ))}
+                </div>
+                <div className="p-5 sm:p-6">
             <div className="flex flex-wrap items-start gap-5">
-              <Avatar name={sp.name} hue={sp.hue} size={88} />
               <div className="min-w-0 flex-1">
                 <h1 className="flex flex-wrap items-center gap-2 text-2xl font-extrabold tracking-tight">{sp.name} {sp.verified ? <Badge tone="brand"><BadgeCheck size={13} /> Verified</Badge> : <Badge tone="warn">Verification pending</Badge>}</h1>
                 <p className="text-ink-soft">{sp.title} · {sp.years} years' experience</p>
@@ -35,6 +46,9 @@ export default function ProviderProfile() {
             <p className="mt-5 text-[15px] leading-relaxed text-ink-soft">{sp.bio}</p>
             <div className="mt-5 flex flex-wrap gap-2">
               {sp.conditions.map((c) => <Badge key={c}>{c}</Badge>)}
+            </div>
+                </div>
+              </div>
             </div>
           </Card>
           <div className="grid gap-4 sm:grid-cols-3">

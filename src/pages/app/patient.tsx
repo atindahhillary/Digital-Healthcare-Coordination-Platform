@@ -91,6 +91,20 @@ export function PatientHome() {
   return (
     <>
       <PageTitle title={`Good ${new Date().getHours() < 12 ? "morning" : new Date().getHours() < 17 ? "afternoon" : "evening"}, ${me.name.split(" ")[0]}`} sub="Here is everything happening in your care today." />
+      <div className="mb-6 grid grid-cols-2 gap-3 sm:grid-cols-4">
+        {[
+          { to: "/find-care", icon: CalendarPlus, t: "Book a visit", s: "Video or in person", c: "bg-sky2-500" },
+          { to: "/app/patient/records", icon: FlaskConical, t: "Lab results", s: openLab ? "1 in progress" : "All in", c: "bg-violet-500" },
+          { to: "/app/patient/records", icon: Pill, t: "Pharmacy", s: "Refills & delivery", c: "bg-orange-500" },
+          { to: "/app/patient/care", icon: Users, t: "Support", s: "Groups & learning", c: "bg-pink-500" },
+        ].map((x) => (
+          <Link key={x.t} to={x.to} className="rounded-3xl border border-line bg-white p-4 shadow-card transition hover:-translate-y-0.5 hover:shadow-lift">
+            <span className={`grid h-11 w-11 place-items-center rounded-full text-white shadow-sm ${x.c}`}><x.icon size={20} /></span>
+            <p className="mt-3 font-bold leading-tight">{x.t}</p>
+            <p className="text-xs text-ink-mute">{x.s}</p>
+          </Link>
+        ))}
+      </div>
       <div className="grid gap-6 lg:grid-cols-[1.6fr_1fr]">
         <div className="space-y-6">
           {next ? <AppointmentCard a={next} focus /> : (

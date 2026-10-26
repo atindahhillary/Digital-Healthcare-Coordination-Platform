@@ -52,7 +52,7 @@ export default function PublicLayout() {
             ))}
           </nav>
           <div className="flex items-center gap-2">
-            <InstallButton className="hidden md:inline-flex" />
+            <InstallButton />
             <Link to="/app/patient" className="hidden h-10 items-center whitespace-nowrap rounded-xl px-3 text-sm font-semibold text-ink-soft hover:text-ink sm:inline-flex focus-ring">
               Sign in
             </Link>
@@ -113,7 +113,7 @@ export default function PublicLayout() {
         </div>
         <div className="border-t border-white/10">
           <div className="container-x flex flex-wrap justify-between gap-2 py-5 text-xs text-white/50">
-            <p>© {new Date().getFullYear()} Unganisha Care. Clickable prototype: all providers, patients and data are fictional.</p>
+            <p>© {new Date().getFullYear()} Unganisha Care. Clickable prototype: all providers, patients and data are fictional. Photos from Unsplash show models, not the named doctors.</p>
             <p>Emergency: 999 / 112 · Kenya Red Cross: 1199</p>
           </div>
         </div>

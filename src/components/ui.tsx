@@ -1,5 +1,6 @@
 import { X } from "lucide-react";
 import { useEffect, type ButtonHTMLAttributes, type ReactNode } from "react";
+import { photoOf } from "../data/seed";
 import { cx, initials } from "../lib/format";
 
 type Variant = "primary" | "secondary" | "ghost" | "danger" | "warn";
@@ -51,6 +52,8 @@ export function Badge({ tone = "neutral", children, className }: { tone?: Tone; 
 }
 
 export function Avatar({ name, hue = 168, size = 40 }: { name: string; hue?: number; size?: number }) {
+  const src = photoOf(name);
+  if (src) return <img src={src} alt="" width={size} height={size} loading="lazy" decoding="async" className="shrink-0 rounded-full bg-brand-50 object-cover ring-2 ring-white" style={{ width: size, height: size }} />;
   return (
     <span
       aria-hidden

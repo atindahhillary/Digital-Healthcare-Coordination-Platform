@@ -1,15 +1,17 @@
 import { Search, SlidersHorizontal, Video } from "lucide-react";
 import { useMemo, useState } from "react";
+import { useSearchParams } from "react-router-dom";
 import { BookingModal, SpecialistCard } from "../../components/Booking";
 import { Empty, inputCls } from "../../components/ui";
 import { COUNTIES, SPECIALTIES, specialists, type Specialist } from "../../data/seed";
 import { cx } from "../../lib/format";
 
 export default function FindCare() {
-  const [q, setQ] = useState("");
-  const [spec, setSpec] = useState("");
+  const [params] = useSearchParams();
+  const [q, setQ] = useState(params.get("q") ?? "");
+  const [spec, setSpec] = useState(params.get("specialty") ?? "");
   const [county, setCounty] = useState("");
-  const [virtualOnly, setVirtualOnly] = useState(false);
+  const [virtualOnly, setVirtualOnly] = useState(params.get("mode") === "virtual");
   const [sort, setSort] = useState<"punctuality" | "fee" | "rating">("punctuality");
   const [book, setBook] = useState<Specialist>();
 

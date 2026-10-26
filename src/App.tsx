@@ -2,7 +2,7 @@ import { lazy, Suspense, useEffect } from "react";
 import { Navigate, Route, Routes, useLocation } from "react-router-dom";
 import AppLayout from "./components/AppLayout";
 import Assistant from "./components/Assistant";
-import { NetworkStatus } from "./components/Network";
+import { InstallBanner, NetworkStatus } from "./components/Network";
 import Toaster from "./components/Toaster";
 import PublicLayout from "./components/PublicLayout";
 import { PatientAppointments, PatientCare, PatientHome, PatientRecords } from "./pages/app/patient";
@@ -56,6 +56,7 @@ export default function App() {
       <NetworkStatus />
       <Toaster />
       <Assistant />
+      <InstallBanner />
       <Suspense fallback={<div className="grid min-h-[50vh] place-items-center text-sm text-ink-mute">Loading…</div>}>
       <Routes>
         <Route element={<PublicLayout />}>

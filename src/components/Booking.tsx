@@ -1,7 +1,7 @@
 import { BadgeCheck, CheckCircle2, Clock, Languages, MapPin, ShieldCheck, Smartphone, Star, Video } from "lucide-react";
 import { useMemo, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
-import { slotsFor, type Mode, type Specialist } from "../data/seed";
+import { photoOf, slotsFor, type Mode, type Specialist } from "../data/seed";
 import { cx, date, kes, time } from "../lib/format";
 import { useStore } from "../store/store";
 import { Avatar, Badge, Button, Field, inputCls, Modal } from "./ui";
@@ -19,19 +19,23 @@ export function nextSlot(sp: Specialist, taken: string[] = []) {
 
 export function SpecialistCard({ sp, onBook }: { sp: Specialist; onBook: () => void }) {
   const slot = useMemo(() => nextSlot(sp), [sp]);
+  const photo = photoOf(sp.name);
   return (
-    <article className="flex flex-col rounded-2xl border border-line bg-white p-5 shadow-card transition hover:-translate-y-0.5 hover:shadow-lift">
-      <div className="flex items-start gap-3.5">
-        <Avatar name={sp.name} hue={sp.hue} size={56} />
-        <div className="min-w-0 flex-1">
-          <Link to={`/specialists/${sp.id}`} className="flex items-center gap-1.5 font-bold text-ink hover:text-brand-700">
-            {sp.name} {sp.verified && <BadgeCheck size={16} className="shrink-0 text-brand-600" aria-label="Verified" />}
-          </Link>
-          <p className="text-sm text-ink-mute">{sp.title}</p>
-          <p className="mt-1 flex items-center gap-1 text-[13px] text-ink-soft"><MapPin size={13} /> {sp.town}, {sp.county}</p>
-        </div>
+    <article className="flex flex-col rounded-3xl border border-line bg-white p-3 shadow-card transition hover:-translate-y-0.5 hover:shadow-lift">
+      <Link to={`/specialists/${sp.id}`} className="relative block h-52 overflow-hidden rounded-2xl bg-gradient-to-b from-sky2-50 to-brand-50 focus-ring" aria-label={`View ${sp.name}`}>
+        {photo ? <img src={photo} alt="" loading="lazy" decoding="async" className="h-full w-full object-cover object-top" /> : <span className="grid h-full place-items-center"><Avatar name={sp.name} hue={sp.hue} size={88} /></span>}
+        <span className="absolute left-3 top-3 inline-flex items-center gap-1 rounded-full bg-white/95 px-2.5 py-1 text-xs font-bold text-ink shadow-sm"><Star size={12} className="fill-amber-400 text-amber-400" />{sp.rating}</span>
+        {sp.verified && <span className="absolute right-3 top-3 grid h-8 w-8 place-items-center rounded-full bg-white/95 text-brand-600 shadow-sm" aria-label="Verified"><BadgeCheck size={17} /></span>}
+        <span className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-ink/70 to-transparent px-3 pb-3 pt-10">
+          <span className="inline-flex items-center gap-1 rounded-full bg-brand-600 px-2.5 py-1 text-[11px] font-bold text-white">{sp.punctuality}% on time</span>
+        </span>
+      </Link>
+      <div className="px-2 pt-3">
+        <Link to={`/specialists/${sp.id}`} className="block truncate text-[17px] font-bold text-ink hover:text-brand-700">{sp.name}</Link>
+        <p className="text-sm text-ink-mute">{sp.specialty}</p>
+        <p className="mt-1 flex items-center gap-1 text-[13px] text-ink-soft"><MapPin size={13} /> {sp.town}, {sp.county}</p>
       </div>
-      <div className="mt-4 grid grid-cols-3 divide-x divide-line rounded-xl bg-canvas py-2.5 text-center">
+      <div className="mx-2 mt-3 grid grid-cols-3 divide-x divide-line rounded-2xl bg-canvas py-2.5 text-center">
         <div>
           <p className="flex items-center justify-center gap-1 text-sm font-bold"><Star size={13} className="fill-amber-400 text-amber-400" />{sp.rating}</p>
           <p className="text-[11px] text-ink-mute">{sp.reviews} reviews</p>
@@ -45,17 +49,17 @@ export function SpecialistCard({ sp, onBook }: { sp: Specialist; onBook: () => v
           <p className="text-[11px] text-ink-mute">avg wait</p>
         </div>
       </div>
-      <div className="mt-3 flex flex-wrap gap-1.5">
-        {sp.conditions.slice(0, 3).map((c) => <Badge key={c} tone="neutral">{c}</Badge>)}
+      <div className="mt-3 flex flex-wrap gap-1.5 px-2">
+        {sp.conditions.slice(0, 2).map((c) => <Badge key={c} tone="neutral">{c}</Badge>)}
       </div>
-      <div className="mt-auto pt-4">
-        <div className="flex items-end justify-between gap-2 border-t border-line pt-4">
+      <div className="mt-auto px-2 pb-1 pt-3">
+        <div className="flex items-end justify-between gap-2 border-t border-line pt-3">
           <div>
             <p className="text-[11px] font-semibold uppercase tracking-wide text-ink-mute">From</p>
             <p className="font-bold text-ink">{kes(Math.min(sp.fee, sp.virtualFee || sp.fee))}</p>
             {slot && <p className="text-xs text-brand-700">Next: {date(slot)}, {time(slot)}</p>}
           </div>
-          <Button onClick={onBook} disabled={!sp.verified} size="sm">{sp.verified ? "Book" : "Verifying"}</Button>
+          <Button onClick={onBook} disabled={!sp.verified} size="sm" className="rounded-full px-5">{sp.verified ? "Book" : "Verifying"}</Button>
         </div>
       </div>
     </article>

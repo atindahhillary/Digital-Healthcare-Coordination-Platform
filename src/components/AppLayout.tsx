@@ -34,6 +34,8 @@ const roles: { role: Role; label: string; icon: LucideIcon; nav: { to: string; l
   ] },
 ];
 
+const shortLabel: Record<string, string> = { "My care plan": "Care plan", "Records & privacy": "Records", "Rules & pathways": "Rules", "Audit & complaints": "Audit" };
+
 function identity(role: Role, s: ReturnType<typeof useStore>["state"]) {
   switch (role) {
     case "patient": return { name: patients[s.patientId].name, sub: "Patient · Lupus pathway", hue: 330 };
@@ -131,7 +133,7 @@ export default function AppLayout() {
               </p>
             </div>
             <div className="flex items-center gap-2">
-              <InstallButton className="hidden sm:inline-flex" />
+              <InstallButton />
               <div className="relative" ref={bellRef}>
                 <button onClick={() => setBell(!bell)} className="relative grid h-10 w-10 place-items-center rounded-xl border border-line bg-white text-ink-soft hover:text-ink focus-ring" aria-label={`Notifications, ${unread} unread`}>
                   <Bell size={18} />
@@ -170,7 +172,7 @@ export default function AppLayout() {
           </div>
         </header>
 
-        <main className="px-4 pb-28 pt-6 sm:px-6 lg:pb-12">
+        <main className="px-4 pb-40 pt-6 sm:px-6 lg:pb-12">
           <div className="mx-auto max-w-6xl">
             <Outlet />
           </div>
@@ -179,12 +181,22 @@ export default function AppLayout() {
 
       {/* Mobile bottom nav */}
       {role.nav.length > 1 && (
-        <nav className="fixed inset-x-0 bottom-0 z-30 border-t border-line bg-white/95 pb-[env(safe-area-inset-bottom)] backdrop-blur lg:hidden" aria-label="Section">
-          <div className="flex">
+        <nav className="fixed inset-x-3 bottom-[max(0.75rem,env(safe-area-inset-bottom))] z-30 lg:hidden" aria-label="Section">
+          <div className="flex items-center gap-1 rounded-full border border-line bg-white/95 p-1.5 shadow-lift backdrop-blur">
             {role.nav.map((n) => (
-              <NavLink key={n.to} to={n.to} end className={({ isActive }) => cx("flex flex-1 flex-col items-center gap-1 py-2.5 text-[11px] font-semibold", isActive ? "text-brand-700" : "text-ink-mute")}>
-                <n.icon size={20} />
-                <span className="truncate px-1">{n.label}</span>
+              <NavLink
+                key={n.to}
+                to={n.to}
+                end
+                aria-label={n.label}
+                className={({ isActive }) => cx("flex h-12 min-w-0 items-center justify-center gap-2 rounded-full text-sm font-semibold transition-all", isActive ? "flex-[2.2] bg-brand-600 px-3 text-white shadow-sm" : "flex-1 text-ink-mute hover:text-ink")}
+              >
+                {({ isActive }) => (
+                  <>
+                    <n.icon size={20} className="shrink-0" />
+                    {isActive && <span className="truncate">{shortLabel[n.label] ?? n.label}</span>}
+                  </>
+                )}
               </NavLink>
             ))}
           </div>

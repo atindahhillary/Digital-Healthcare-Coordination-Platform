@@ -31,6 +31,8 @@ export default defineConfig({
         navigateFallback: "/index.html",
         cleanupOutdatedCaches: true,
         maximumFileSizeToCacheInBytes: 3 * 1024 * 1024,
+        // Photos are cached as they are viewed rather than precached, to keep the first visit light on data.
+        runtimeCaching: [{ urlPattern: /\/img\/.*\.webp$/, handler: "CacheFirst", options: { cacheName: "photos", expiration: { maxEntries: 40 } } }],
       },
     }),
   ],

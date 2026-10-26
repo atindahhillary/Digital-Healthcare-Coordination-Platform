@@ -1,17 +1,73 @@
 import {
-  ArrowRight, BadgeCheck, Bell, CalendarCheck2, CheckCircle2, FlaskConical, Globe2, HeartHandshake, LayoutDashboard, Languages, Phone,
-  Pill, ShieldCheck, Smartphone, Stethoscope, Users, Video, Wifi,
+  Activity, ArrowRight, BadgeCheck, Bell, Brain, CalendarCheck2, CheckCircle2, Eye, FlaskConical, Globe2, HeartHandshake, HeartPulse, LayoutDashboard,
+  Languages, Phone, Pill, Search, ShieldCheck, Smartphone, Stethoscope, Users, Video, Wifi,
 } from "lucide-react";
 import { useState } from "react";
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import { BookingModal, SpecialistCard } from "../../components/Booking";
 import Simulator from "../../components/Simulator";
 import { Avatar } from "../../components/ui";
 import { pathways, specialists, type Specialist } from "../../data/seed";
 
+const tiles = [
+  { to: "/find-care", img: "/img/svc-specialist.webp", icon: Stethoscope, t: "Find a specialist", b: "Verified doctors, real on-time records" },
+  { to: "/find-care?mode=virtual", img: "/img/svc-consult.webp", icon: Video, t: "Book a consultation", b: "Video or in person, at a time that suits you" },
+  { to: "/app/patient/records", img: "/img/svc-lab.webp", icon: FlaskConical, t: "Lab tests", b: "Home sample collection, results to your phone" },
+  { to: "/app/patient/records", img: "/img/svc-pharmacy.webp", icon: Pill, t: "Pharmacy", b: "E-prescriptions, refills and delivery" },
+];
+
+const specialtyChips = [
+  { s: "Rheumatology", icon: HeartHandshake, c: "bg-violet-600" },
+  { s: "Nephrology", icon: FlaskConical, c: "bg-sky2-600" },
+  { s: "Cardiology", icon: HeartPulse, c: "bg-rose-500" },
+  { s: "Endocrinology", icon: Activity, c: "bg-orange-500" },
+  { s: "Psychiatry", icon: Brain, c: "bg-brand-600" },
+  { s: "Ophthalmology", icon: Eye, c: "bg-amber-500" },
+];
+
+function HelpTiles() {
+  const navigate = useNavigate();
+  const [q, setQ] = useState("");
+  return (
+    <section className="container-x relative -mt-6 pb-6 sm:-mt-10">
+      <div className="rounded-[28px] border border-line bg-gradient-to-b from-white to-brand-50/50 p-4 shadow-lift sm:p-8">
+        <h2 className="text-2xl font-extrabold tracking-tight sm:text-3xl">How can we help you today?</h2>
+        <form onSubmit={(e) => { e.preventDefault(); navigate(`/find-care${q.trim() ? `?q=${encodeURIComponent(q.trim())}` : ""}`); }} className="relative mt-4">
+          <label htmlFor="home-search" className="sr-only">Search doctors or specialties</label>
+          <Search size={19} className="pointer-events-none absolute left-4 top-1/2 -translate-y-1/2 text-ink-mute" />
+          <input id="home-search" value={q} onChange={(e) => setQ(e.target.value)} placeholder="Doctor, condition or specialty" className="h-14 w-full rounded-2xl border border-line bg-white pl-12 pr-28 text-[15px] shadow-sm focus:border-brand-400 focus:outline-none focus:ring-4 focus:ring-brand-100" />
+          <button type="submit" className="absolute right-2 top-1/2 h-10 -translate-y-1/2 rounded-xl bg-brand-600 px-4 text-sm font-semibold text-white hover:bg-brand-700">Search</button>
+        </form>
+        <div className="-mx-4 mt-4 flex gap-2.5 overflow-x-auto px-4 pb-1 no-scrollbar sm:mx-0 sm:px-0">
+          {specialtyChips.map((x) => (
+            <Link key={x.s} to={`/find-care?specialty=${x.s}`} className="flex shrink-0 items-center gap-2 rounded-2xl border border-line bg-white py-1.5 pl-1.5 pr-3.5 text-sm font-semibold text-ink shadow-sm hover:border-brand-300">
+              <span className={`grid h-8 w-8 place-items-center rounded-xl text-white ${x.c}`}><x.icon size={16} /></span>
+              {x.s}
+            </Link>
+          ))}
+        </div>
+        <div className="mt-5 grid grid-cols-2 gap-3 sm:gap-4 lg:grid-cols-4">
+          {tiles.map((x) => (
+            <Link key={x.t} to={x.to} className="group overflow-hidden rounded-3xl border border-line bg-white p-2 shadow-card transition hover:-translate-y-0.5 hover:shadow-lift focus-ring">
+              <span className="block aspect-[4/3] overflow-hidden rounded-2xl bg-canvas">
+                <img src={x.img} alt="" loading="lazy" decoding="async" className="h-full w-full object-cover transition duration-500 group-hover:scale-105" />
+              </span>
+              <span className="block px-2 pb-2 pt-3">
+                <x.icon size={20} className="text-brand-600" />
+                <span className="mt-1.5 block font-bold leading-tight text-ink sm:text-lg">{x.t}</span>
+                <span className="mt-1 block text-[13px] leading-snug text-ink-mute">{x.b}</span>
+              </span>
+            </Link>
+          ))}
+        </div>
+      </div>
+    </section>
+  );
+}
+
 function HeroPhone() {
   return (
-    <div className="relative mx-auto w-full max-w-[340px]">
+    <div className="relative mx-auto hidden w-full max-w-[340px] sm:block">
       <div className="absolute -left-16 top-20 hidden w-56 rounded-2xl bg-white p-3.5 shadow-lift ring-1 ring-line animate-rise sm:block" style={{ animationDelay: ".3s", animationFillMode: "backwards" }}>
         <p className="flex items-center gap-2 text-[13px] font-bold text-ink"><FlaskConical size={15} className="text-violet-600" /> Results ready</p>
         <p className="mt-1 text-xs text-ink-mute">Kidney panel shared with you and Dr Amina.</p>
@@ -94,6 +150,12 @@ export default function Home() {
                 Try the live demo
               </Link>
             </div>
+            <div className="mt-7 flex items-center gap-3">
+              <div className="flex -space-x-3">
+                {specialists.slice(0, 5).map((s) => <Avatar key={s.id} name={s.name} size={40} />)}
+              </div>
+              <p className="text-sm leading-snug text-ink-soft"><b className="text-ink">Verified specialists</b><br />across 8 counties, on video or in person</p>
+            </div>
             <dl className="mt-10 grid max-w-xl grid-cols-3 gap-4 border-t border-line pt-6">
               {[["60 min", "readiness check before every consult"], ["20 min", "max delay before recovery kicks in"], ["0", "patients left without a next step"]].map(([v, l]) => (
                 <div key={l}>
@@ -106,6 +168,8 @@ export default function Home() {
           <HeroPhone />
         </div>
       </section>
+
+      <HelpTiles />
 
       {/* PROBLEM */}
       <section className="container-x py-20">

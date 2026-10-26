@@ -229,4 +229,16 @@ export function slotsFor(sp: Specialist, day: Date, taken: string[] = []): Date[
   return out;
 }
 
+// Illustrative stock photos (Unsplash licence). The people pictured are models,
+// not the fictional doctors named here.
+const PHOTOS: Record<string, string> = {
+  "Amina Odhiambo": "dr-amina", "Brian Kiprono": "dr-kiprono", "Njeri Mwangi": "dr-njeri", "Hassan Ali": "dr-hassan",
+  "Kevin Otieno": "dr-otieno", "Faith Wairimu": "dr-wairimu", "Mercy Chebet": "dr-chebet", "Daniel Mutua": "dr-mutua",
+  "Lilian Achieng": "dr-achieng", "Peter Sankale": "dr-sankale",
+};
+export const photoOf = (name: string) => {
+  const key = name.replace(/^Dr\.\s*/, "");
+  return PHOTOS[key] ? `/img/${PHOTOS[key]}.webp` : undefined;
+};
+
 export const byId = <T extends { id: string }>(list: T[], id?: string) => list.find((x) => x.id === id);
