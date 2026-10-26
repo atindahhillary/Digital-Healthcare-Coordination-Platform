@@ -5,16 +5,10 @@ import {
 import { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { BookingModal, SpecialistCard } from "../../components/Booking";
+import CareFlow from "../../components/CareFlow";
 import Simulator from "../../components/Simulator";
 import { Avatar } from "../../components/ui";
 import { pathways, specialists, type Specialist } from "../../data/seed";
-
-const tiles = [
-  { to: "/find-care", img: "/img/svc-specialist.webp", icon: Stethoscope, t: "Find a specialist", b: "Verified doctors, real on-time records" },
-  { to: "/find-care?mode=virtual", img: "/img/svc-consult.webp", icon: Video, t: "Book a consultation", b: "Video or in person, at a time that suits you" },
-  { to: "/app/patient/records", img: "/img/svc-lab.webp", icon: FlaskConical, t: "Lab tests", b: "Home sample collection, results to your phone" },
-  { to: "/app/patient/records", img: "/img/svc-pharmacy.webp", icon: Pill, t: "Pharmacy", b: "E-prescriptions, refills and delivery" },
-];
 
 const specialtyChips = [
   { s: "Rheumatology", icon: HeartHandshake, c: "bg-violet-600" },
@@ -46,20 +40,7 @@ function HelpTiles() {
             </Link>
           ))}
         </div>
-        <div className="mt-5 grid grid-cols-2 gap-3 sm:gap-4 lg:grid-cols-4">
-          {tiles.map((x) => (
-            <Link key={x.t} to={x.to} className="group overflow-hidden rounded-3xl border border-line bg-white p-2 shadow-card transition hover:-translate-y-0.5 hover:shadow-lift focus-ring">
-              <span className="block aspect-[4/3] overflow-hidden rounded-2xl bg-canvas">
-                <img src={x.img} alt="" loading="lazy" decoding="async" className="h-full w-full object-cover transition duration-500 group-hover:scale-105" />
-              </span>
-              <span className="block px-2 pb-2 pt-3">
-                <x.icon size={20} className="text-brand-600" />
-                <span className="mt-1.5 block font-bold leading-tight text-ink sm:text-lg">{x.t}</span>
-                <span className="mt-1 block text-[13px] leading-snug text-ink-mute">{x.b}</span>
-              </span>
-            </Link>
-          ))}
-        </div>
+        <CareFlow />
       </div>
     </section>
   );
