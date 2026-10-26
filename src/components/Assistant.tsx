@@ -113,7 +113,9 @@ export default function Assistant() {
     if (open) setTimeout(() => inputRef.current?.focus(), 50);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [open]);
-  useEffect(() => endRef.current?.scrollIntoView({ block: "end" }), [msgs, typing]);
+  useEffect(() => {
+    endRef.current?.scrollIntoView({ block: "end" });
+  }, [msgs, typing]);
 
   function reply(intent: string, raw: string, l: Lang) {
     const menu = T.menu[l];
