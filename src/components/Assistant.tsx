@@ -1,4 +1,4 @@
-import { ArrowUp, Bot, CalendarClock, MessageCircle, Phone, Siren, X } from "lucide-react";
+import { ArrowUp, CalendarClock, Phone, Siren, X } from "lucide-react";
 import { useEffect, useRef, useState, type ReactNode } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
 import { byId, pathways, SPECIALTIES, specialists } from "../data/seed";
@@ -6,6 +6,36 @@ import { cx, dateTime, kes } from "../lib/format";
 import { useStore, type State } from "../store/store";
 import { nextSlot } from "./Booking";
 import { Avatar } from "./ui";
+
+// Illustrated doctor used as the assistant's face. Deliberately a drawing, not a
+// photo, so the bot is never mistaken for a real clinician.
+export function DoctorAvatar({ size = 56 }: { size?: number }) {
+  return (
+    <svg width={size} height={size} viewBox="7 9 50 50" aria-hidden className="shrink-0">
+      <defs>
+        <linearGradient id="da-bg" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stopColor="#CFF5EE" /><stop offset="1" stopColor="#62D5C3" /></linearGradient>
+        <clipPath id="da-clip"><circle cx="32" cy="32" r="32" /></clipPath>
+      </defs>
+      <g clipPath="url(#da-clip)">
+        <rect width="64" height="64" fill="url(#da-bg)" />
+        <path d="M8 64c1-11 9-17 24-17s23 6 24 17z" fill="#fff" />
+        <path d="M24 48l8 9 8-9" fill="#0A7F73" />
+        <path d="M27 46h10v5l-5 4-5-4z" fill="#8A5A3C" />
+        <path d="M22 50c-1 5 1 9 4 10" fill="none" stroke="#0B655D" strokeWidth="2" strokeLinecap="round" />
+        <path d="M42 50c1 4 0 8-3 9" fill="none" stroke="#0B655D" strokeWidth="2" strokeLinecap="round" />
+        <circle cx="38.5" cy="59.5" r="2.4" fill="#C7D2DC" stroke="#0B655D" strokeWidth="1.2" />
+        <ellipse cx="32" cy="31" rx="11" ry="12.5" fill="#9A6646" />
+        <ellipse cx="21" cy="32" rx="2" ry="3" fill="#8A5A3C" />
+        <ellipse cx="43" cy="32" rx="2" ry="3" fill="#8A5A3C" />
+        <path d="M20.5 29c-1-10 5-15 11.5-15s12.5 5 11.5 15c-2-5-6-7-11.5-7s-9.5 2-11.5 7z" fill="#1F1A17" />
+        <circle cx="27.5" cy="31.5" r="1.4" fill="#1F1A17" />
+        <circle cx="36.5" cy="31.5" r="1.4" fill="#1F1A17" />
+        <path d="M27.5 37.5c2.6 2.4 6.4 2.4 9 0" fill="none" stroke="#5A321C" strokeWidth="1.6" strokeLinecap="round" />
+        <path d="M14 64V55c0-3 2-5 5-6" fill="none" stroke="#E3EAF2" strokeWidth="1" />
+      </g>
+    </svg>
+  );
+}
 
 // Rule-based care assistant. It runs entirely on the device (works offline,
 // sends nothing to an AI service) and never gives medical advice: symptoms are
@@ -298,9 +328,14 @@ export default function Assistant() {
         onClick={() => setOpen(!open)}
         aria-label={open ? "Close assistant" : "Open care assistant"}
         aria-expanded={open}
-        className={cx("fixed right-4 z-[65]", inApp ? "bottom-[5.75rem]" : "bottom-5", " grid h-14 w-14 place-items-center rounded-full bg-brand-600 text-white shadow-lift hover:bg-brand-700 focus-ring lg:bottom-6 lg:right-6", !open && "animate-pulse-soft")}
+        className={cx("fixed right-4 z-[65]", inApp ? "bottom-[5.75rem]" : "bottom-5", " grid h-16 w-16 place-items-center rounded-full bg-white p-1 text-white shadow-lift ring-2 ring-brand-500 focus-ring lg:bottom-6 lg:right-6", !open && "animate-pulse-soft")}
       >
-        {open ? <X size={24} /> : <MessageCircle size={24} />}
+        {open ? <span className="grid h-full w-full place-items-center rounded-full bg-brand-600"><X size={24} /></span> : (
+          <>
+            <DoctorAvatar size={54} />
+            <span className="absolute bottom-0.5 right-0.5 h-4 w-4 rounded-full border-2 border-white bg-emerald-500" aria-hidden />
+          </>
+        )}
       </button>
       {open && (
         <section
@@ -309,7 +344,7 @@ export default function Assistant() {
           className={cx("fixed inset-x-2 top-16 z-[64]", inApp ? "bottom-[10rem]" : "bottom-24", " flex flex-col overflow-hidden rounded-3xl border border-line bg-white shadow-lift animate-pop sm:inset-x-auto sm:right-6 sm:top-auto sm:h-[600px] sm:max-h-[calc(100vh-8rem)] sm:w-[380px] lg:bottom-24")}
         >
           <header className="flex items-center gap-3 bg-gradient-to-r from-brand-600 to-brand-700 px-4 py-3 text-white">
-            <span className="grid h-9 w-9 place-items-center rounded-full bg-white/15"><Bot size={18} /></span>
+            <span className="rounded-full bg-white p-0.5"><DoctorAvatar size={38} /></span>
             <div className="min-w-0 flex-1">
               <p className="font-bold leading-tight">{lang === "sw" ? "Msaidizi wa huduma" : "Care assistant"}</p>
               <p className="text-xs text-white/80">{lang === "sw" ? "Inafanya kazi hata bila mtandao" : "Works offline · not for emergencies"}</p>
@@ -319,7 +354,8 @@ export default function Assistant() {
           <div className="flex-1 space-y-3 overflow-y-auto bg-canvas px-3 py-4" aria-live="polite">
             {msgs.map((m) => (
               <div key={m.id} className={cx("flex", m.from === "me" ? "justify-end" : "justify-start")}>
-                <div className={cx("max-w-[88%] space-y-2", m.from === "me" && "text-right")}>
+                {m.from === "bot" && <span className="mr-2 mt-0.5 self-start"><DoctorAvatar size={28} /></span>}
+                <div className={cx("max-w-[82%] space-y-2", m.from === "me" && "text-right")}>
                   {m.text && <p className={cx("inline-block rounded-2xl px-3.5 py-2.5 text-left text-sm leading-snug", m.from === "me" ? "rounded-br-md bg-brand-600 text-white" : "rounded-bl-md bg-white text-ink shadow-card")}>{m.text}</p>}
                   {m.card}
                 </div>
