@@ -5,8 +5,8 @@ import { Button, Card, Field, inputCls } from "../../components/ui";
 
 const types = [
   { icon: Stethoscope, t: "Specialists & clinics", b: ["Patients who need ongoing specialist care", "Your schedule, your fees", "Notes, orders and prescriptions in one place", "Paid reliably, no chasing"], to: "/app/specialist" },
-  { icon: FlaskConical, t: "Laboratories", b: ["Authorised orders arrive digitally", "Home-collection bookings", "Secure result release to patient and doctor", "Agreed price list"], to: "/app/lab" },
-  { icon: Pill, t: "Pharmacies", b: ["E-prescriptions ready to verify", "Recurring refills from chronic patients", "Delivery coordination", "Stock alerts to patients handled for you"], to: "/app/pharmacy" },
+  { icon: FlaskConical, soon: true, t: "Laboratories", b: ["Authorised orders arrive digitally", "Home-collection bookings", "Secure result release to patient and doctor", "Agreed price list"], to: "/app/lab" },
+  { icon: Pill, soon: true, t: "Pharmacies", b: ["E-prescriptions ready to verify", "Recurring refills from chronic patients", "Delivery coordination", "Stock alerts to patients handled for you"], to: "/app/pharmacy" },
   { icon: Users, t: "Patient organisations", b: ["Share approved education", "Publish support-group sessions", "Signpost members to verified services", "No access to medical records, by design"], to: "/app/org" },
 ];
 
@@ -18,18 +18,18 @@ export default function Partners() {
         <div className="container-x py-14">
           <p className="text-sm font-bold uppercase tracking-wider text-brand-700">For providers & partners</p>
           <h1 className="mt-3 max-w-3xl text-3xl font-extrabold tracking-tight sm:text-5xl">Join a network patients can rely on</h1>
-          <p className="mt-4 max-w-2xl text-lg text-ink-soft">We bring you patients who need continuing care and handle the coordination around them. In return we ask for one thing: show up when you said you would.</p>
+          <p className="mt-4 max-w-2xl text-lg text-ink-soft">We bring you patients who need continuing care and handle the coordination around them. In return we ask for one thing: show up when you said you would. We are starting with specialists. Laboratories and pharmacies join in the next phases, and you can join the waitlist now.</p>
         </div>
       </section>
       <section className="container-x mt-10 grid gap-4 md:grid-cols-2">
         {types.map((x) => (
           <Card key={x.t} className="p-6">
             <span className="grid h-12 w-12 place-items-center rounded-2xl bg-brand-50 text-brand-700"><x.icon size={22} /></span>
-            <p className="mt-4 text-lg font-bold">{x.t}</p>
+            <p className="mt-4 flex flex-wrap items-center gap-2 text-lg font-bold">{x.t}{"soon" in x && x.soon && <span className="rounded-full bg-ink px-2.5 py-0.5 text-[11px] font-bold uppercase tracking-wide text-white">Opening later</span>}</p>
             <ul className="mt-3 space-y-2 text-sm text-ink-soft">
               {x.b.map((b) => <li key={b} className="flex gap-2"><BadgeCheck size={16} className="mt-0.5 shrink-0 text-brand-600" />{b}</li>)}
             </ul>
-            <Link to={x.to} className="mt-5 inline-flex items-center gap-1 text-sm font-semibold text-brand-700 hover:underline">Preview the portal <ArrowRight size={15} /></Link>
+            <Link to={x.to} className="mt-5 inline-flex items-center gap-1 text-sm font-semibold text-brand-700 hover:underline">{"soon" in x && x.soon ? "See what is coming" : "Preview the portal"} <ArrowRight size={15} /></Link>
           </Card>
         ))}
       </section>

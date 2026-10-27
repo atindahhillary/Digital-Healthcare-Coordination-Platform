@@ -1,4 +1,4 @@
-import { Check, FlaskConical, Pause, Pill, Play, RefreshCw, Stethoscope, Video } from "lucide-react";
+import { Check, ClipboardList, FlaskConical, Pause, Pill, Play, RefreshCw, Stethoscope, UserPlus, Video } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
 import { Link } from "react-router-dom";
 import { cx } from "../lib/format";
@@ -9,21 +9,26 @@ import { cx } from "../lib/format";
 
 const steps = [
   {
-    to: "/find-care", img: "/img/svc-specialist.webp", icon: Stethoscope, short: "Find", t: "Find a specialist", b: "Verified doctors, real on-time records",
-    sub: ["Search “lupus” near you", "Compare fees and on-time %", "Dr Amina chosen"],
+    to: "/register", img: "/img/step-register.webp", icon: UserPlus, short: "Register", t: "Create your account", b: "Phone, ID and health basics in about 3 minutes",
+    sub: ["Phone verified by SMS code", "ID details checked (KYC)", "Profile and consent saved"],
   },
   {
-    to: "/find-care?mode=virtual", img: "/img/svc-consult.webp", icon: Video, short: "Consult", t: "Book a consultation", b: "Video or in person, at a time that suits you",
-    sub: ["Slot picked, paid by M-Pesa", "Doctor confirms readiness", "Consultation done, tests ordered"],
+    to: "/find-care", img: "/img/svc-specialist.webp", icon: Stethoscope, short: "Book", t: "Book a specialist", b: "A verified doctor and a time that suits you",
+    sub: ["Search by condition or county", "Slot picked, payment held", "Doctor confirms, video link sent"],
   },
   {
-    to: "/app/patient/records", img: "/img/svc-lab.webp", icon: FlaskConical, short: "Test", t: "Lab tests", b: "Home sample collection, results to your phone",
-    sub: ["Order arrives at the lab", "Sample collected at home", "Results sent to you and your doctor"],
+    to: "/find-care?mode=virtual", img: "/img/svc-consult.webp", icon: Video, short: "Consult", t: "See your doctor", b: "Video or in person, reminders for you both",
+    sub: ["SMS and app reminders to you both", "Doctor opens your file once confirmed", "Visit done, summary written"],
   },
   {
-    to: "/app/patient/records", img: "/img/svc-pharmacy.webp", icon: Pill, short: "Medicines", t: "Pharmacy", b: "E-prescriptions, refills and delivery",
-    sub: ["E-prescription received", "Pharmacist verifies stock", "Delivered to your door"],
+    to: "/app/patient/record", img: "/img/step-record.webp", icon: ClipboardList, short: "Follow-up", t: "Your health record", b: "Visits, prescriptions and next steps in one place",
+    sub: ["Summary saved to your record", "Prescription code issued", "Reminders until you pick a pharmacy"],
   },
+];
+
+const next = [
+  { img: "/img/svc-lab.webp", icon: FlaskConical, t: "Lab tests", b: "Orders and results in the app" },
+  { img: "/img/svc-pharmacy.webp", icon: Pill, t: "Pharmacies", b: "Prescriptions sent to your pharmacy" },
 ];
 
 const TICKS_PER_STEP = 4; // three sub-steps plus a beat to read the last one
@@ -163,6 +168,16 @@ export default function CareFlow() {
             </Link>
           );
         })}
+      </div>
+
+      <div className="mt-4 flex flex-wrap items-center gap-x-4 gap-y-3 rounded-2xl border border-dashed border-line bg-white/60 p-3">
+        <span className="text-xs font-bold uppercase tracking-wider text-ink-mute">Coming next</span>
+        {next.map((n) => (
+          <span key={n.t} className="flex items-center gap-2.5">
+            <span className="relative h-10 w-10 shrink-0 overflow-hidden rounded-xl bg-canvas"><img src={n.img} alt="" loading="lazy" decoding="async" className="h-full w-full object-cover grayscale" /></span>
+            <span className="text-sm"><b className="flex items-center gap-1.5">{n.t}<span className="rounded-full bg-ink px-1.5 py-0.5 text-[9px] font-bold uppercase leading-none text-white">Soon</span></b><span className="text-xs text-ink-mute">{n.b}</span></span>
+          </span>
+        ))}
       </div>
     </div>
   );

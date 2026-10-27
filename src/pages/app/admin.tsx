@@ -156,7 +156,8 @@ export function AdminProviders() {
   return (
     <>
       <PageTitle title="Providers & verification" sub="Nobody takes a booking until their licence and registration are checked." />
-      <h2 className="mb-3 font-bold">Verification queue</h2>
+      <h2 className="mb-1 font-bold">Verification queue</h2>
+      <p className="mb-3 text-sm text-ink-mute">Providers and patient ID checks. Approving a patient ID shows them a verified badge and tells doctors their identity was checked.</p>
       <div className="grid gap-4 md:grid-cols-2">
         {state.verification.map((v) => (
           <Card key={v.id} className="p-5">
@@ -173,8 +174,8 @@ export function AdminProviders() {
             </ul>
             {v.status === "pending" && (
               <div className="mt-4 flex gap-2">
-                <Button size="sm" onClick={() => dispatch({ type: "verify", id: v.id, status: "approved" })}>Approve</Button>
-                <Button size="sm" variant="secondary" onClick={() => dispatch({ type: "verify", id: v.id, status: "rejected" })}>Request more information</Button>
+                <Button size="sm" onClick={() => dispatch({ type: "verify", id: v.id, status: "approved" })}>{v.type === "Patient ID" ? "Approve ID" : "Approve"}</Button>
+                <Button size="sm" variant="secondary" onClick={() => dispatch({ type: "verify", id: v.id, status: "rejected" })}>{v.type === "Patient ID" ? "Ask for a clearer photo" : "Request more information"}</Button>
               </div>
             )}
           </Card>

@@ -2,6 +2,7 @@ import { Menu, Phone, ShieldCheck, X } from "lucide-react";
 import { useState } from "react";
 import { Link, NavLink, Outlet } from "react-router-dom";
 import { cx } from "../lib/format";
+import { useStore } from "../store/store";
 import { InstallButton } from "./Network";
 
 export function Logo({ light }: { light?: boolean }) {
@@ -13,7 +14,7 @@ export function Logo({ light }: { light?: boolean }) {
         <path d="M18 33h8l3-5 4 9 3-4h10" fill="none" stroke="#9FE9DC" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round" />
       </svg>
       <span className={cx("whitespace-nowrap text-[17px] font-extrabold tracking-tight", light ? "text-white" : "text-ink")}>
-        Unganisha<span className={light ? "text-brand-200" : "text-brand-600"}> Care</span>
+        Afya<span className={light ? "text-brand-200" : "text-brand-600"}>Connect</span>
       </span>
     </span>
   );
@@ -30,6 +31,8 @@ const nav = [
 
 export default function PublicLayout() {
   const [open, setOpen] = useState(false);
+  const { state } = useStore();
+  const registered = !!state.myPatientId;
   return (
     <div className="flex min-h-screen flex-col">
       <div className="bg-ink text-[13px] text-white/85">
@@ -53,12 +56,14 @@ export default function PublicLayout() {
           </nav>
           <div className="flex items-center gap-2">
             <InstallButton />
-            <Link to="/app/patient" className="hidden h-10 items-center whitespace-nowrap rounded-xl px-3 text-sm font-semibold text-ink-soft hover:text-ink sm:inline-flex focus-ring">
-              Sign in
-            </Link>
-            <Link to="/find-care" className="inline-flex h-10 items-center whitespace-nowrap rounded-xl bg-brand-600 px-4 text-sm font-semibold text-white shadow-sm hover:bg-brand-700 focus-ring">
-              <span className="sm:hidden">Book</span>
-              <span className="hidden sm:inline">Book a specialist</span>
+            {!registered && (
+              <Link to="/app/patient" className="hidden h-10 items-center whitespace-nowrap rounded-xl px-3 text-sm font-semibold text-ink-soft hover:text-ink sm:inline-flex focus-ring">
+                Sign in
+              </Link>
+            )}
+            <Link to={registered ? "/app/patient" : "/register"} className="inline-flex h-10 items-center whitespace-nowrap rounded-xl bg-brand-600 px-4 text-sm font-semibold text-white shadow-sm hover:bg-brand-700 focus-ring">
+              <span className="sm:hidden">{registered ? "Account" : "Join"}</span>
+              <span className="hidden sm:inline">{registered ? "My account" : "Create account"}</span>
             </Link>
             <button className="grid h-10 w-10 place-items-center rounded-xl border border-line xl:hidden focus-ring" onClick={() => setOpen(!open)} aria-label="Menu" aria-expanded={open}>
               {open ? <X size={18} /> : <Menu size={18} />}
@@ -73,6 +78,9 @@ export default function PublicLayout() {
                   {n.label}
                 </NavLink>
               ))}
+              <NavLink to={registered ? "/app/patient" : "/register"} onClick={() => setOpen(false)} className="rounded-xl bg-brand-50 px-3 py-3 font-semibold text-brand-800">
+                {registered ? "Open my account" : "Create your account"}
+              </NavLink>
               <NavLink to="/app/patient" onClick={() => setOpen(false)} className="rounded-xl px-3 py-3 font-semibold text-brand-700 hover:bg-canvas">
                 Open the demo platform
               </NavLink>
@@ -93,8 +101,8 @@ export default function PublicLayout() {
             </p>
           </div>
           {[
-            { h: "Patients", l: [["Find a specialist", "/find-care"], ["Care pathways", "/care-pathways"], ["Patient portal", "/app/patient"], ["Help & assisted booking", "/contact"]] },
-            { h: "Providers", l: [["Join the network", "/partners"], ["Specialist portal", "/app/specialist"], ["Laboratory portal", "/app/lab"], ["Pharmacy portal", "/app/pharmacy"]] },
+            { h: "Patients", l: [["Create an account", "/register"], ["Find a specialist", "/find-care"], ["Care pathways", "/care-pathways"], ["Help & assisted booking", "/contact"]] },
+            { h: "Providers", l: [["Join the network", "/partners"], ["Specialist portal", "/app/specialist"], ["Laboratory portal (soon)", "/app/lab"], ["Pharmacy portal (soon)", "/app/pharmacy"]] },
             { h: "Platform", l: [["Trust & privacy", "/trust"], ["Blueprint & roadmap", "/blueprint"], ["Admin console", "/app/admin"], ["Patient organisations", "/app/org"]] },
           ].map((c) => (
             <div key={c.h}>
@@ -113,7 +121,7 @@ export default function PublicLayout() {
         </div>
         <div className="border-t border-white/10">
           <div className="container-x flex flex-wrap justify-between gap-2 py-5 text-xs text-white/50">
-            <p>© {new Date().getFullYear()} Unganisha Care. Clickable prototype: all providers, patients and data are fictional. Photos from Unsplash show models, not the named doctors.</p>
+            <p>© {new Date().getFullYear()} AfyaConnect. Clickable prototype: all providers and demo patients are fictional. Photos from Unsplash show models, not the named doctors.</p>
             <p>Emergency: 999 / 112 · Kenya Red Cross: 1199</p>
           </div>
         </div>

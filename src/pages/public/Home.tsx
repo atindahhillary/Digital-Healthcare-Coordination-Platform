@@ -1,6 +1,6 @@
 import {
-  Activity, ArrowRight, BadgeCheck, Bell, Brain, CalendarCheck2, CheckCircle2, Eye, FlaskConical, Globe2, HeartHandshake, HeartPulse, LayoutDashboard,
-  Languages, Phone, Pill, Search, ShieldCheck, Smartphone, Stethoscope, Users, Video, Wifi,
+  Activity, ArrowRight, BadgeCheck, Bell, BellRing, Brain, CheckCircle2, Eye, FileText, FlaskConical, Globe2, HeartHandshake, HeartPulse, LayoutDashboard, Link2,
+  Languages, Lock, Phone, Pill, Search, ShieldCheck, Smartphone, Stethoscope, Users, Video, Wifi,
 } from "lucide-react";
 import { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
@@ -9,6 +9,7 @@ import CareFlow from "../../components/CareFlow";
 import Simulator from "../../components/Simulator";
 import { Avatar } from "../../components/ui";
 import { pathways, specialists, type Specialist } from "../../data/seed";
+import { useStore } from "../../store/store";
 
 const specialtyChips = [
   { s: "Rheumatology", icon: HeartHandshake, c: "bg-violet-600" },
@@ -50,12 +51,12 @@ function HeroPhone() {
   return (
     <div className="relative mx-auto hidden w-full max-w-[340px] sm:block">
       <div className="absolute -left-16 top-20 hidden w-56 rounded-2xl bg-white p-3.5 shadow-lift ring-1 ring-line animate-rise sm:block" style={{ animationDelay: ".3s", animationFillMode: "backwards" }}>
-        <p className="flex items-center gap-2 text-[13px] font-bold text-ink"><FlaskConical size={15} className="text-violet-600" /> Results ready</p>
-        <p className="mt-1 text-xs text-ink-mute">Kidney panel shared with you and Dr Amina.</p>
+        <p className="flex items-center gap-2 text-[13px] font-bold text-ink"><Link2 size={15} className="text-brand-600" /> Video link sent</p>
+        <p className="mt-1 text-xs text-ink-mute">To you and Dr Amina, by SMS and in the app.</p>
       </div>
       <div className="absolute -right-12 bottom-24 hidden w-52 rounded-2xl bg-white p-3.5 shadow-lift ring-1 ring-line animate-rise sm:block" style={{ animationDelay: ".5s", animationFillMode: "backwards" }}>
-        <p className="flex items-center gap-2 text-[13px] font-bold text-ink"><Pill size={15} className="text-orange-600" /> Refill on the way</p>
-        <p className="mt-1 text-xs text-ink-mute">Rider arriving 2:40 pm, Kasarani.</p>
+        <p className="flex items-center gap-2 text-[13px] font-bold text-ink"><BellRing size={15} className="text-orange-600" /> Reminder in 2 hours</p>
+        <p className="mt-1 text-xs text-ink-mute">Your visit with Dr Amina. Video link attached.</p>
       </div>
       <div className="rounded-[2.6rem] bg-ink p-3 shadow-2xl shadow-black/40 ring-1 ring-white/10">
         <div className="overflow-hidden rounded-[2.1rem] bg-canvas text-ink">
@@ -97,16 +98,26 @@ function HeroPhone() {
 }
 
 const portals = [
-  { icon: Smartphone, title: "Patients", body: "Find, book, join and follow up. Results, refills, referrals and reminders in one place.", to: "/app/patient", tint: "bg-brand-50 text-brand-700" },
-  { icon: Stethoscope, title: "Specialists & clinics", body: "Schedules, readiness check, notes, e-prescriptions, lab orders and referrals.", to: "/app/specialist", tint: "bg-sky2-50 text-sky2-600" },
-  { icon: FlaskConical, title: "Laboratories", body: "Receive authorised orders, schedule home collection and release results securely.", to: "/app/lab", tint: "bg-violet-50 text-violet-700" },
-  { icon: Pill, title: "Pharmacies", body: "Verify e-prescriptions, confirm stock and price, deliver and manage refills.", to: "/app/pharmacy", tint: "bg-orange-50 text-orange-700" },
+  { icon: Smartphone, title: "Patients", body: "Register with your ID, book, join by video link, keep your health record and get prescription reminders.", to: "/app/patient", tint: "bg-brand-50 text-brand-700" },
+  { icon: Stethoscope, title: "Specialists & clinics", body: "Confirm bookings, share the video link, open the patient file once confirmed, write summaries and prescriptions.", to: "/app/specialist", tint: "bg-sky2-50 text-sky2-600" },
+  { icon: FlaskConical, title: "Laboratories", body: "Orders from specialists, home collection and secure results. Opens once the specialist journey is perfected.", to: "/app/lab", tint: "bg-violet-50 text-violet-700", soon: true },
+  { icon: Pill, title: "Pharmacies", body: "Receive the prescription your patient chose, confirm stock, deliver and manage refills.", to: "/app/pharmacy", tint: "bg-orange-50 text-orange-700", soon: true },
   { icon: Users, title: "Patient organisations", body: "Share approved education and support groups. Never see medical records.", to: "/app/org", tint: "bg-pink-50 text-pink-700" },
-  { icon: LayoutDashboard, title: "Platform operations", body: "Verify providers, set service rules, monitor delays and resolve complaints.", to: "/app/admin", tint: "bg-slate-100 text-slate-700" },
+  { icon: LayoutDashboard, title: "Platform operations", body: "Verify providers and patient IDs, set service rules, monitor delays and resolve complaints.", to: "/app/admin", tint: "bg-slate-100 text-slate-700" },
+];
+
+const pillars = [
+  { icon: Search, t: "Find the right specialist", b: "Verified doctors, clear prices and an on-time record you can see before you book." },
+  { icon: FileText, t: "Share your history once", b: "One health record that follows you. Doctors open it only after they confirm your booking." },
+  { icon: FlaskConical, t: "Access local tests", b: "Doctors recommend tests now. Booking and results inside the app arrive with the lab phase.", soon: true },
+  { icon: Users, t: "Coordinate your clinicians", b: "Referrals tracked, one care plan, and a coordinator who calls if anything slips." },
+  { icon: Bell, t: "Know what to do next", b: "Reminders for visits, prescriptions and follow-up, by SMS and in the app." },
 ];
 
 export default function Home() {
   const [book, setBook] = useState<Specialist>();
+  const { state } = useStore();
+  const registered = !!state.myPatientId;
   return (
     <>
       {/* HERO */}
@@ -132,16 +143,17 @@ export default function Home() {
               Care that <span className="bg-gradient-to-r from-brand-200 to-[#9ee7ff] bg-clip-text text-transparent">shows up</span>, every time you need it.
             </h1>
             <p className="mt-5 max-w-xl text-lg leading-relaxed text-white/80">
-              We connect you with verified specialists, laboratories, pharmacies and patient organisations, and then make sure the care you booked actually happens. If a doctor is late, you are told early and offered a real next step.
+              Most directories help you find a doctor. We help you through the whole journey: finding a specialist, sharing your history once, coordinating your clinicians and knowing what to do next.
             </p>
             <div className="mt-8 flex flex-wrap gap-3">
-              <Link to="/find-care" className="inline-flex h-12 items-center gap-2 rounded-xl bg-white px-6 font-semibold text-brand-800 shadow-lg shadow-black/10 hover:bg-brand-50 focus-ring">
-                Find a specialist <ArrowRight size={18} />
+              <Link to={registered ? "/app/patient" : "/register"} className="inline-flex h-12 items-center gap-2 rounded-xl bg-white px-6 font-semibold text-brand-800 shadow-lg shadow-black/10 hover:bg-brand-50 focus-ring">
+                {registered ? "Open my account" : "Create your account"} <ArrowRight size={18} />
               </Link>
-              <Link to="/app/patient" className="inline-flex h-12 items-center gap-2 rounded-xl border border-white/30 bg-white/10 px-6 font-semibold text-white backdrop-blur hover:bg-white/20 focus-ring">
-                Try the live demo
+              <Link to="/find-care" className="inline-flex h-12 items-center gap-2 rounded-xl border border-white/30 bg-white/10 px-6 font-semibold text-white backdrop-blur hover:bg-white/20 focus-ring">
+                Find a specialist
               </Link>
             </div>
+            <p className="mt-3 text-sm text-white/70">Just looking? <Link to="/app/patient" className="font-semibold text-white underline underline-offset-2">Try the demo patient</Link></p>
             <div className="mt-7 flex items-center gap-3">
               <div className="flex -space-x-3">
                 {specialists.slice(0, 5).map((s) => <Avatar key={s.id} name={s.name} size={40} />)}
@@ -156,6 +168,12 @@ export default function Home() {
                 </div>
               ))}
             </dl>
+            <div className="relative mt-8 overflow-hidden rounded-3xl ring-1 ring-white/20 sm:hidden">
+              <img src="/img/hero-doctor.webp" alt="A smiling doctor" loading="lazy" decoding="async" className="aspect-[4/3] w-full object-cover object-top" />
+              <div className="absolute inset-0 bg-gradient-to-t from-[#04403c]/80 via-transparent to-transparent" />
+              <span className="absolute left-3 top-3 inline-flex items-center gap-1.5 rounded-full bg-white px-3 py-1.5 text-xs font-bold text-ink shadow"><Link2 size={13} className="text-brand-600" /> Video link sent</span>
+              <span className="absolute bottom-3 left-3 right-3 flex items-center gap-2 rounded-2xl bg-white/95 px-3 py-2.5 text-xs font-semibold text-ink shadow"><CheckCircle2 size={15} className="shrink-0 text-emerald-600" /> Dr. Amina confirmed your visit · reminders set for you both</span>
+            </div>
           </div>
           <HeroPhone />
         </div>
@@ -163,29 +181,23 @@ export default function Home() {
 
       <HelpTiles />
 
-      {/* PROBLEM */}
+      {/* NOT JUST A DIRECTORY */}
       <section className="container-x py-20">
-        <div className="grid gap-12 lg:grid-cols-2 lg:items-center">
-          <div>
-            <p className="text-sm font-bold uppercase tracking-wider text-brand-700">Not another booking site</p>
-            <h2 className="mt-3 text-3xl font-extrabold tracking-tight sm:text-4xl">Living with a chronic condition means juggling five providers who never talk to each other.</h2>
-            <p className="mt-4 text-lg text-ink-soft">A person living with lupus may need a rheumatologist, regular kidney tests, monthly medicines, an eye check and peer support. Today each one is booked, paid for and chased separately. We coordinate the whole journey.</p>
-          </div>
-          <div className="grid gap-3 sm:grid-cols-2">
-            {[
-              { icon: CalendarCheck2, t: "Appointments that are actively managed", b: "Readiness checks, delay alerts and automatic recovery, not just a calendar entry." },
-              { icon: FlaskConical, t: "Tests ordered and tracked", b: "Orders go straight to the lab. Home collection. Results go to you and your doctor." },
-              { icon: Pill, t: "Medicines that arrive", b: "E-prescriptions verified by a pharmacist, stock confirmed, refills reminded." },
-              { icon: Bell, t: "Follow-up that never slips", b: "Your care pathway schedules the next review and the next test for you." },
-            ].map((x) => (
-              <div key={x.t} className="rounded-2xl border border-line bg-white p-5 shadow-card">
-                <span className="grid h-10 w-10 place-items-center rounded-xl bg-brand-50 text-brand-700"><x.icon size={20} /></span>
-                <p className="mt-3 font-bold">{x.t}</p>
-                <p className="mt-1 text-sm text-ink-soft">{x.b}</p>
-              </div>
-            ))}
-          </div>
+        <div className="mx-auto max-w-3xl text-center">
+          <p className="text-sm font-bold uppercase tracking-wider text-brand-700">Not just a directory</p>
+          <h2 className="mt-3 text-3xl font-extrabold tracking-tight sm:text-4xl">Most directories help you find a doctor. We help you through the whole journey.</h2>
+          <p className="mt-4 text-lg text-ink-soft">A long-term condition means many clinicians, many tests and a lot to remember. We keep it in one place and tell you what to do next.</p>
         </div>
+        <ol className="mt-12 grid gap-4 sm:grid-cols-2 lg:grid-cols-5">
+          {pillars.map((x, i) => (
+            <li key={x.t} className="relative rounded-2xl border border-line bg-white p-5 shadow-card">
+              <span className="absolute right-4 top-4 text-xs font-bold text-ink-mute">0{i + 1}</span>
+              <span className="grid h-11 w-11 place-items-center rounded-xl bg-brand-50 text-brand-700"><x.icon size={20} /></span>
+              <p className="mt-4 flex flex-wrap items-center gap-2 font-bold leading-snug">{x.t}{"soon" in x && x.soon && <span className="rounded-full bg-ink px-2 py-0.5 text-[10px] font-bold uppercase leading-none text-white">Soon</span>}</p>
+              <p className="mt-1.5 text-sm text-ink-soft">{x.b}</p>
+            </li>
+          ))}
+        </ol>
       </section>
 
       {/* RELIABILITY */}
@@ -202,49 +214,68 @@ export default function Home() {
         </div>
       </section>
 
-      {/* JOURNEY */}
-      <section className="container-x py-20">
-        <div className="mx-auto max-w-2xl text-center">
-          <p className="text-sm font-bold uppercase tracking-wider text-brand-700">One connected journey</p>
-          <h2 className="mt-3 text-3xl font-extrabold tracking-tight sm:text-4xl">Grace's lupus care, coordinated</h2>
-          <p className="mt-4 text-lg text-ink-soft">Every handover between providers is tracked, consented and visible to Grace.</p>
+      {/* HEALTH RECORD */}
+      <section className="bg-canvas py-20">
+        <div className="container-x grid gap-12 lg:grid-cols-2 lg:items-center">
+          <div>
+            <p className="text-sm font-bold uppercase tracking-wider text-brand-700">Your data, in order</p>
+            <h2 className="mt-3 text-3xl font-extrabold tracking-tight sm:text-4xl">A health record that works like a student portal</h2>
+            <p className="mt-4 text-lg text-ink-soft">Every visit, summary and prescription is added automatically. Look back whenever you need to. A new doctor sees it only after they confirm a booking with you, and you can turn their access off at any time.</p>
+            <ul className="mt-6 space-y-3 text-[15px]">
+              {["Visit history with each doctor's summary", "Prescriptions with a code, and reminders until you choose a pharmacy", "Tests your doctor recommends, and their results", "A log of everyone who has opened your file"].map((x) => (
+                <li key={x} className="flex gap-3"><span className="mt-0.5 grid h-5 w-5 shrink-0 place-items-center rounded-full bg-brand-600 text-white"><CheckCircle2 size={13} /></span>{x}</li>
+              ))}
+            </ul>
+            <Link to="/app/patient/record" className="mt-7 inline-flex h-12 items-center gap-2 rounded-xl bg-brand-600 px-6 font-semibold text-white hover:bg-brand-700 focus-ring">See the record <ArrowRight size={18} /></Link>
+          </div>
+          <div className="relative mx-auto w-full max-w-md">
+            <div className="absolute -inset-4 -z-10 rounded-[2rem] bg-gradient-to-br from-brand-100 to-sky2-100 blur-xl" aria-hidden />
+            <div className="overflow-hidden rounded-3xl border border-line bg-white shadow-lift">
+              <div className="flex items-center gap-3 bg-gradient-to-r from-brand-50 to-sky2-50 p-4">
+                <span className="grid h-12 w-12 place-items-center rounded-full bg-brand-600 text-lg font-bold text-white">GW</span>
+                <div className="min-w-0 flex-1"><p className="font-bold">Grace Wambui</p><p className="text-xs text-ink-mute">34 years · Nairobi</p></div>
+                <span className="inline-flex items-center gap-1 rounded-full bg-emerald-50 px-2.5 py-1 text-xs font-bold text-emerald-700"><BadgeCheck size={12} /> ID verified</span>
+              </div>
+              <div className="flex gap-1 border-b border-line px-3 pt-2 text-sm font-semibold">
+                {["Overview", "Visits", "Prescriptions"].map((t, i) => <span key={t} className={`rounded-t-lg px-3 py-2 ${i === 1 ? "border-b-2 border-brand-600 text-brand-700" : "text-ink-mute"}`}>{t}</span>)}
+              </div>
+              <ul className="divide-y divide-line">
+                <li className="p-4">
+                  <div className="flex items-center gap-3"><Avatar name="Amina Odhiambo" size={36} /><div className="min-w-0 flex-1"><p className="text-sm font-bold">Dr. Amina Odhiambo</p><p className="text-xs text-ink-mute">Rheumatology · 3-month lupus review</p></div><span className="rounded-full bg-sky2-50 px-2 py-0.5 text-[11px] font-bold text-sky2-700">Follow-up in 12 wks</span></div>
+                  <p className="mt-2.5 rounded-xl bg-canvas p-3 text-[13px] text-ink-soft">Joint pain improved. Continue hydroxychloroquine and prednisolone. Kidney panel and blood count before the next review.</p>
+                </li>
+                <li className="flex items-center gap-3 p-4">
+                  <span className="grid h-9 w-9 shrink-0 place-items-center rounded-xl bg-orange-50 text-orange-700"><Pill size={17} /></span>
+                  <div className="min-w-0 flex-1"><p className="text-sm font-bold">Prescription RX-4K7QZ2</p><p className="text-xs text-ink-mute">Choose a pharmacy · reminder 2 of 4 sent</p></div>
+                  <span className="rounded-full bg-amber-50 px-2 py-0.5 text-[11px] font-bold text-amber-800">Action needed</span>
+                </li>
+                <li className="flex items-center gap-3 p-4 text-[13px] text-ink-soft"><Lock size={15} className="shrink-0 text-brand-600" /> Dr. Njeri Mwangi opened this file on 12 Aug, after confirming a booking.</li>
+              </ul>
+            </div>
+          </div>
         </div>
-        <ol className="mt-12 grid gap-4 md:grid-cols-3 lg:grid-cols-6">
-          {[
-            { icon: Stethoscope, t: "Rheumatology review", b: "Video consult, on time", c: "text-brand-700 bg-brand-50" },
-            { icon: FlaskConical, t: "Kidney panel", b: "Ordered in-consult, collected at home", c: "text-violet-700 bg-violet-50" },
-            { icon: Bell, t: "Results released", b: "To Grace and her doctor only", c: "text-sky2-600 bg-sky2-50" },
-            { icon: Pill, t: "Refill delivered", b: "Pharmacist-verified e-prescription", c: "text-orange-700 bg-orange-50" },
-            { icon: Users, t: "Support group", b: "Monthly session, no record access", c: "text-pink-700 bg-pink-50" },
-            { icon: CalendarCheck2, t: "Next review set", b: "Auto-scheduled in 12 weeks", c: "text-emerald-700 bg-emerald-50" },
-          ].map((s, i) => (
-            <li key={s.t} className="relative rounded-2xl border border-line bg-white p-5 shadow-card">
-              <span className="absolute right-4 top-4 text-xs font-bold text-ink-mute">0{i + 1}</span>
-              <span className={`grid h-11 w-11 place-items-center rounded-xl ${s.c}`}><s.icon size={20} /></span>
-              <p className="mt-4 font-bold leading-snug">{s.t}</p>
-              <p className="mt-1 text-sm text-ink-mute">{s.b}</p>
-            </li>
-          ))}
-        </ol>
       </section>
 
       {/* PORTALS */}
-      <section className="bg-canvas py-20">
+      <section className="py-20">
         <div className="container-x">
           <div className="flex flex-wrap items-end justify-between gap-4">
             <div className="max-w-2xl">
-              <p className="text-sm font-bold uppercase tracking-wider text-brand-700">Six portals, one platform</p>
-              <h2 className="mt-3 text-3xl font-extrabold tracking-tight sm:text-4xl">Everyone in the care network, on the same page</h2>
+              <p className="text-sm font-bold uppercase tracking-wider text-brand-700">Built in phases</p>
+              <h2 className="mt-3 text-3xl font-extrabold tracking-tight sm:text-4xl">Patient and specialist first, made solid. The rest follows.</h2>
             </div>
             <Link to="/app/patient" className="inline-flex items-center gap-1.5 font-semibold text-brand-700 hover:underline">Open the demo <ArrowRight size={16} /></Link>
           </div>
           <div className="mt-10 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
             {portals.map((p) => (
               <Link key={p.title} to={p.to} className="group rounded-2xl border border-line bg-white p-6 shadow-card transition hover:-translate-y-0.5 hover:shadow-lift focus-ring">
-                <span className={`grid h-12 w-12 place-items-center rounded-2xl ${p.tint}`}><p.icon size={22} /></span>
+                <span className="flex items-start justify-between gap-2">
+                  <span className={`grid h-12 w-12 place-items-center rounded-2xl ${p.tint}${"soon" in p && p.soon ? " opacity-60" : ""}`}><p.icon size={22} /></span>
+                  <span className={`rounded-full px-2.5 py-1 text-[11px] font-bold uppercase tracking-wide ${"soon" in p && p.soon ? "bg-ink text-white" : "bg-emerald-50 text-emerald-700"}`}>{"soon" in p && p.soon ? "Opening later" : "Live in demo"}</span>
+                </span>
                 <p className="mt-4 text-lg font-bold">{p.title}</p>
                 <p className="mt-1.5 text-[15px] text-ink-soft">{p.body}</p>
-                <p className="mt-4 inline-flex items-center gap-1 text-sm font-semibold text-brand-700">Explore portal <ArrowRight size={15} className="transition group-hover:translate-x-0.5" /></p>
+                <p className="mt-4 inline-flex items-center gap-1 text-sm font-semibold text-brand-700">{"soon" in p && p.soon ? "See what is coming" : "Explore portal"} <ArrowRight size={15} className="transition group-hover:translate-x-0.5" /></p>
               </Link>
             ))}
           </div>
@@ -320,8 +351,8 @@ export default function Home() {
         <div className="grid gap-4 lg:grid-cols-2">
           <div className="relative overflow-hidden rounded-3xl bg-gradient-to-br from-brand-600 to-brand-800 p-8 text-white sm:p-10">
             <BadgeCheck size={28} className="text-brand-200" />
-            <h3 className="mt-4 text-2xl font-extrabold">Specialists, labs and pharmacies</h3>
-            <p className="mt-2 max-w-md text-white/80">Join a network that sends you the right patients, with orders, consent and payment already handled.</p>
+            <h3 className="mt-4 text-2xl font-extrabold">Specialists and clinics</h3>
+            <p className="mt-2 max-w-md text-white/80">Join a network that sends you verified patients with their history ready, and handles reminders and payment. Labs and pharmacies join in later phases.</p>
             <Link to="/partners" className="mt-6 inline-flex h-11 items-center gap-2 rounded-xl bg-white px-5 font-semibold text-brand-800 hover:bg-brand-50">Partner with us <ArrowRight size={16} /></Link>
           </div>
           <div className="relative overflow-hidden rounded-3xl bg-ink p-8 text-white sm:p-10">

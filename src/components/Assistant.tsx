@@ -3,7 +3,7 @@ import { useEffect, useRef, useState, type ReactNode } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
 import { byId, pathways, SPECIALTIES, specialists } from "../data/seed";
 import { cx, dateTime, kes } from "../lib/format";
-import { useStore, type State } from "../store/store";
+import { patients, roomUrl, rxReminderState, useStore, type State } from "../store/store";
 import { nextSlot } from "./Booking";
 import { Avatar } from "./ui";
 
@@ -52,12 +52,12 @@ interface Msg {
 
 const T = {
   hello: {
-    en: "Hi, I'm your care assistant. I can check your appointments, results and refills, find a specialist, or connect you to a person.",
-    sw: "Habari, mimi ni msaidizi wako wa huduma. Naweza kuangalia miadi, majibu ya vipimo na dawa zako, kukutafutia daktari, au kukuunganisha na mtu.",
+    en: "Hi, I'm your care assistant. I can check your visits, video link and prescriptions, show your health record, find a specialist, or connect you to a person.",
+    sw: "Habari, mimi ni msaidizi wako wa huduma. Naweza kuangalia miadi, kiungo cha video na dawa zako, kuonyesha rekodi yako ya afya, kukutafutia daktari, au kukuunganisha na mtu.",
   },
   menu: {
-    en: ["My next appointment", "Find a specialist", "Lab results", "Refill my medicine", "My doctor is late", "Talk to a person", "Kiswahili"],
-    sw: ["Miadi yangu ijayo", "Tafuta daktari", "Majibu ya vipimo", "Ongeza dawa", "Daktari amechelewa", "Ongea na mtu", "English"],
+    en: ["My next appointment", "Find a specialist", "My prescriptions", "My health record", "My doctor is late", "Talk to a person", "Kiswahili"],
+    sw: ["Miadi yangu ijayo", "Tafuta daktari", "Dawa zangu", "Rekodi yangu ya afya", "Daktari amechelewa", "Ongea na mtu", "English"],
   },
   emergency: {
     en: "This sounds like it could be an emergency. Please call 999 or 112 now, or go to the nearest emergency unit. Do not wait for an appointment.",
@@ -81,10 +81,10 @@ const T = {
     en: "If your doctor is running late you will get an SMS straight away. Up to 20 minutes, we tell you the new time. Longer than that, you choose: wait, see another verified specialist, reschedule free, or get a full refund.",
     sw: "Daktari akichelewa utapata SMS mara moja. Hadi dakika 20 tunakupa muda mpya. Zaidi ya hapo unachagua: kusubiri, kumwona daktari mwingine, kubadilisha muda bila malipo, au kurudishiwa pesa zote.",
   },
-  refillDone: { en: "Refill requested. Your pharmacy will confirm stock and price shortly.", sw: "Ombi la dawa limetumwa. Duka la dawa litathibitisha hivi karibuni." },
+  refillDone: { en: "Your refill is ready. Now choose the pharmacy you prefer. I will keep reminding you until it is done.", sw: "Dawa yako ya kuongeza iko tayari. Sasa chagua duka la dawa unalopenda. Nitaendelea kukukumbusha hadi ukamilishe." },
   privacy: {
-    en: "Only you and the doctors you choose can see your notes and results. Labs and pharmacies see only what they handle. Patient groups never see medical records. You can change this any time in Records & privacy.",
-    sw: "Ni wewe na madaktari unaowachagua tu wanaoona maelezo na majibu yako. Maabara na maduka ya dawa huona tu wanachoshughulikia. Vikundi vya wagonjwa haviwezi kuona rekodi za matibabu.",
+    en: "Your file is yours. A specialist can open it only after they confirm a booking with you, and every view is logged. You can switch a doctor's access off any time in Profile. Patient groups never see medical records.",
+    sw: "Rekodi yako ni yako. Daktari anaweza kuifungua tu baada ya kuthibitisha miadi nawe, na kila kufungua kunarekodiwa. Unaweza kuzima ruhusa wakati wowote kwenye Profaili. Vikundi vya wagonjwa haviwezi kuona rekodi za matibabu.",
   },
   pay: {
     en: "You pay by M-Pesa when you book, with no booking fee. Cancel at least 12 hours ahead for a full refund. Insurance and SHA claims are coming in a later phase.",
@@ -101,10 +101,13 @@ function match(text: string) {
   if (EMERGENCY.test(t)) return "emergency";
   if (/kiswahili|swahili/.test(t)) return "sw";
   if (/^english$|in english/.test(t)) return "en";
+  if (/register|sign ?up|create (an )?account|\bkyc\b|my id\b|jisajili|akaunti|usajili/.test(t)) return "register";
+  if (/video link|join link|\blink\b|meeting|kiungo|kuingia/.test(t)) return "link";
   if (/late|delay|chelew|not showing|no show|hajafika/.test(t)) return "late";
   if (/next appointment|my appointment|when is|miadi yangu|miadi ijayo|upcoming/.test(t)) return "next";
-  if (/refill|medicine|medication|drug|pharmacy|ongeza dawa|dawa/.test(t)) return "refill";
-  if (/result|lab|test|kipimo|vipimo|majibu/.test(t)) return "results";
+  if (/prescription|refill|medicine|medication|drug|pharmacy|\brx\b|dawa/.test(t)) return "rx";
+  if (/record|history|summary|health file|rekodi|historia/.test(t)) return "record";
+  if (/result|\blab|test|kipimo|vipimo|majibu/.test(t)) return "results";
   if (/cancel|reschedul|change.*time|ghairi|badilisha/.test(t)) return "change";
   if (/person|human|coordinator|call me|callback|agent|ongea na mtu|mratibu|nipigie/.test(t)) return "human";
   if (/privacy|who can see|data|consent|faragha|siri/.test(t)) return "privacy";
@@ -119,7 +122,7 @@ function match(text: string) {
 
 function nextAppt(s: State) {
   return s.appointments
-    .filter((a) => a.patientId === s.patientId && ["confirmed", "ready", "delayed", "recovery", "in_consult"].includes(a.status))
+    .filter((a) => a.patientId === s.patientId && ["requested", "confirmed", "ready", "delayed", "recovery", "in_consult"].includes(a.status))
     .sort((a, b) => +new Date(a.at) - +new Date(b.at))[0];
 }
 
@@ -180,7 +183,7 @@ export default function Assistant() {
         const a = nextAppt(state);
         if (!a) return push({ from: "bot", text: T.noAppt[l], chips: [menu[1]] });
         const sp = byId(specialists, a.specialistId)!;
-        const status = { confirmed: l === "sw" ? "Imethibitishwa" : "Confirmed", ready: l === "sw" ? "Daktari yuko tayari" : "Doctor is ready", delayed: l === "sw" ? "Amechelewa kidogo" : "Running late", recovery: l === "sw" ? "Chagua hatua inayofuata" : "Action needed: choose an option", in_consult: l === "sw" ? "Mashauriano yanaendelea" : "In consultation" }[a.status as "confirmed"];
+        const status = { requested: l === "sw" ? "Inasubiri daktari athibitishe" : "Waiting for the doctor to confirm", confirmed: l === "sw" ? "Imethibitishwa" : "Confirmed", ready: l === "sw" ? "Daktari yuko tayari" : "Doctor is ready", delayed: l === "sw" ? "Amechelewa kidogo" : "Running late", recovery: l === "sw" ? "Chagua hatua inayofuata" : "Action needed: choose an option", in_consult: l === "sw" ? "Mashauriano yanaendelea" : "In consultation" }[a.status as "confirmed"];
         return push({
           from: "bot",
           card: (
@@ -191,7 +194,10 @@ export default function Assistant() {
               </div>
               <p className="mt-2 flex items-center gap-1.5 text-ink-soft"><CalendarClock size={14} /> {dateTime(a.at)} · {a.mode === "virtual" ? "Video" : sp.town}</p>
               <p className={cx("mt-1 font-semibold", a.status === "recovery" ? "text-rose-700" : a.status === "ready" ? "text-emerald-700" : "text-ink")}>{status}</p>
-              <button onClick={() => go("/app/patient")} className="mt-3 w-full rounded-lg bg-brand-600 py-2 font-semibold text-white">{l === "sw" ? "Fungua miadi" : "Open appointment"}</button>
+              <div className="mt-3 flex gap-2">
+                <button onClick={() => go("/app/patient")} className="flex-1 rounded-lg bg-brand-600 py-2 font-semibold text-white">{l === "sw" ? "Fungua miadi" : "Open appointment"}</button>
+                {a.joinCode && <button onClick={() => go(`/room/${a.joinCode}`)} className="rounded-lg border border-line bg-white px-3 py-2 font-semibold">{l === "sw" ? "Video" : "Video room"}</button>}
+              </div>
             </div>
           ),
         });
@@ -236,37 +242,87 @@ export default function Assistant() {
           ),
         });
       }
-      case "refill": {
-        const rx = state.prescriptions.find((p) => p.patientId === state.patientId && p.nextRefill);
-        const open = state.prescriptions.find((p) => p.patientId === state.patientId && p.status !== "delivered");
-        if (!rx && open) return push({ from: "bot", text: l === "sw" ? `Oda yako ya ${open.items[0].drug} inashughulikiwa.` : `Your ${open.items.map((i) => i.drug).join(", ")} order is in progress (${open.status.replace(/_/g, " ")}).`, chips: [menu[5]] });
-        if (!rx) return push({ from: "bot", text: l === "sw" ? "Huna dawa ya kuongeza sasa." : "You have no refills due right now." });
+      case "register": {
+        const mine = state.myPatientId ? patients[state.myPatientId] : undefined;
+        if (mine) return push({ from: "bot", text: l === "sw" ? `Umesajiliwa kama ${mine.name}. Ukaguzi wa kitambulisho: ${mine.kyc?.status === "verified" ? "umethibitishwa" : "unaendelea, kwa kawaida ndani ya saa 24"}.` : `You are registered as ${mine.name}. ID check: ${mine.kyc?.status === "verified" ? "verified" : "in review, usually within 24 hours"}.`, chips: [menu[1]] });
         return push({
           from: "bot",
+          text: l === "sw" ? "Kujisajili huchukua dakika 3: nambari ya simu, maelezo ya kitambulisho na taarifa chache za afya. Daktari huona rekodi yako tu baada ya kuthibitisha miadi." : "Registering takes about 3 minutes: your phone number, ID details and a few health basics. A doctor sees your file only after they confirm a booking.",
+          card: <button onClick={() => go("/register")} className="rounded-lg bg-brand-600 px-4 py-2 text-sm font-semibold text-white">{l === "sw" ? "Fungua akaunti" : "Create my account"}</button>,
+        });
+      }
+      case "link": {
+        const live = state.appointments.filter((x) => x.patientId === state.patientId && x.joinCode && ["confirmed", "ready", "delayed", "in_consult"].includes(x.status)).sort((x, y) => +new Date(x.at) - +new Date(y.at))[0];
+        if (!live) {
+          const req = state.appointments.find((x) => x.patientId === state.patientId && x.status === "requested");
+          return push({ from: "bot", text: req ? (l === "sw" ? `Ombi lako linasubiri ${byId(specialists, req.specialistId)?.name} athibitishe. Kiungo cha video kitafika kwa SMS na kwenye programu mara tu atakapothibitisha.` : `Your request is waiting for ${byId(specialists, req.specialistId)?.name} to confirm. Your video link arrives by SMS and in the app the moment they do.`) : (l === "sw" ? "Huna ziara ya video iliyothibitishwa bado. Kiungo chako hufika daktari anapothibitisha miadi." : "You have no confirmed video visit yet. Your link arrives when a doctor confirms a booking."), chips: [menu[1]] });
+        }
+        const url = roomUrl(live.joinCode!);
+        return push({
+          from: "bot",
+          text: l === "sw" ? `Kiungo chako cha video cha ${dateTime(live.at)}:` : `Your video link for ${dateTime(live.at)}:`,
           card: (
             <div className="rounded-2xl border border-line bg-white p-3.5 text-sm">
-              <p className="font-bold">{rx.items.map((i) => i.drug).join(", ")}</p>
-              <p className="text-xs text-ink-mute">{l === "sw" ? "Inahitajika" : "Due"} {dateTime(rx.nextRefill!)} · {rx.refillsLeft} {l === "sw" ? "zimebaki" : "refills left"}</p>
-              <button
-                onClick={() => { dispatch({ type: "refill", id: rx.id }); push({ from: "bot", text: T.refillDone[l] }); }}
-                className="mt-3 w-full rounded-lg bg-brand-600 py-2 font-semibold text-white"
-              >
-                {l === "sw" ? "Omba dawa sasa" : "Request refill now"}
-              </button>
+              <p className="break-all font-mono text-[13px] font-semibold">{url.replace(/^https?:\/\//, "")}</p>
+              <div className="mt-3 flex gap-2">
+                <button onClick={() => go(`/room/${live.joinCode}`)} className="flex-1 rounded-lg bg-brand-600 py-2 font-semibold text-white">{l === "sw" ? "Fungua chumba" : "Open the room"}</button>
+                <button onClick={() => { navigator.clipboard?.writeText(url); push({ from: "bot", text: l === "sw" ? "Kiungo kimenakiliwa." : "Link copied." }); }} className="rounded-lg border border-line bg-white px-3 py-2 font-semibold">{l === "sw" ? "Nakili" : "Copy"}</button>
+              </div>
             </div>
           ),
         });
       }
+      case "rx": {
+        const mine = state.prescriptions.filter((p) => p.patientId === state.patientId);
+        const waiting = mine.find((p) => p.status === "issued");
+        const refillable = mine.find((p) => p.nextRefill && ["delivered", "collected"].includes(p.status));
+        if (waiting) {
+          const rem = rxReminderState(waiting);
+          return push({
+            from: "bot",
+            text: l === "sw" ? "Una dawa inayosubiri uchague duka la dawa." : "You have a prescription waiting for you to choose a pharmacy.",
+            card: (
+              <div className="rounded-2xl border border-amber-300 bg-white p-3.5 text-sm">
+                <p className="font-bold">{waiting.items.map((i) => i.drug).join(", ")}</p>
+                <p className="mt-0.5 text-xs text-ink-mute">{l === "sw" ? "Nambari" : "Code"} <span className="font-mono">{waiting.code}</span>{rem ? ` · ${l === "sw" ? "ukumbusho" : "reminder"} ${rem.sent}/${rem.total}` : ""}</p>
+                <button onClick={() => go("/app/patient/record?tab=rx")} className="mt-3 w-full rounded-lg bg-brand-600 py-2 font-semibold text-white">{l === "sw" ? "Chagua duka la dawa" : "Choose a pharmacy"}</button>
+              </div>
+            ),
+          });
+        }
+        if (refillable) {
+          return push({
+            from: "bot",
+            card: (
+              <div className="rounded-2xl border border-line bg-white p-3.5 text-sm">
+                <p className="font-bold">{refillable.items.map((i) => i.drug).join(", ")}</p>
+                <p className="text-xs text-ink-mute">{l === "sw" ? "Inahitajika" : "Refill due"} {dateTime(refillable.nextRefill!)} · {refillable.refillsLeft} {l === "sw" ? "zimebaki" : "left"}</p>
+                <button onClick={() => { dispatch({ type: "refill", id: refillable.id }); push({ from: "bot", text: T.refillDone[l] }); go("/app/patient/record?tab=rx"); }} className="mt-3 w-full rounded-lg bg-brand-600 py-2 font-semibold text-white">{l === "sw" ? "Pata dawa ya kuongeza" : "Get my refill"}</button>
+              </div>
+            ),
+          });
+        }
+        const last = mine[0];
+        return push({ from: "bot", text: last ? (l === "sw" ? `Dawa yako ya mwisho ni ${last.code}. Hali: ${last.status.replace(/_/g, " ")}.` : `Your latest prescription is ${last.code}, status: ${last.status.replace(/_/g, " ")}.`) : (l === "sw" ? "Huna dawa bado. Daktari akikuandikia, utapata nambari na vikumbusho." : "No prescriptions yet. When a doctor prescribes, you get a code and reminders until you pick a pharmacy.") });
+      }
+      case "record": {
+        const last = state.appointments.filter((x) => x.patientId === state.patientId && x.status === "completed").sort((x, y) => +new Date(y.at) - +new Date(x.at))[0];
+        return push({
+          from: "bot",
+          text: last ? (l === "sw" ? `Ziara yako ya mwisho ilikuwa na ${byId(specialists, last.specialistId)?.name}, ${dateTime(last.at)}.` : `Your last visit was with ${byId(specialists, last.specialistId)?.name}, ${dateTime(last.at)}.`) : (l === "sw" ? "Rekodi yako itajaa baada ya kila ziara." : "Your record fills up after each visit."),
+          card: <button onClick={() => go("/app/patient/record")} className="rounded-lg bg-brand-600 px-4 py-2 text-sm font-semibold text-white">{l === "sw" ? "Fungua rekodi yangu" : "Open my health record"}</button>,
+        });
+      }
       case "results": {
-        const orders = state.labOrders.filter((o) => o.patientId === state.patientId);
-        const pending = orders.find((o) => o.status !== "result_ready");
-        const done = orders.find((o) => o.status === "result_ready");
+        const results = state.labOrders.filter((o) => o.patientId === state.patientId && o.results);
+        const advised = state.appointments.filter((x) => x.patientId === state.patientId && x.testsAdvised?.length).sort((x, y) => +new Date(y.at) - +new Date(x.at))[0];
         const lines = [
-          pending && (l === "sw" ? `${pending.tests.join(", ")}: bado yanashughulikiwa (${pending.status.replace(/_/g, " ")}). Tutakutumia SMS yakiwa tayari.` : `${pending.tests.join(", ")}: still ${pending.status.replace(/_/g, " ")}. We'll SMS you when they're ready.`),
-          done && (l === "sw" ? `Majibu ya mwisho yalitoka ${dateTime(done.releasedAt!)}.` : `Your last results were released ${dateTime(done.releasedAt!)}${done.results?.some((r) => r.flag) ? ". Some values are flagged for your doctor to discuss with you" : ""}.`),
+          advised && (l === "sw" ? `Vipimo vilivyopendekezwa: ${advised.testsAdvised!.join(", ")}. Vifanye kwenye maabara yoyote iliyoidhinishwa.` : `Recommended tests: ${advised.testsAdvised!.join(", ")}. Take them at any accredited lab.`),
+          results[0] && (l === "sw" ? "Majibu yako ya awali yako kwenye rekodi." : "Your earlier results are in your health record."),
+          l === "sw" ? "Kuweka miadi ya maabara ndani ya programu kutakuja baadaye." : "Booking labs inside the app comes in a later phase.",
         ].filter(Boolean) as string[];
-        push({ from: "bot", text: lines.join(" ") || (l === "sw" ? "Hakuna vipimo." : "No lab orders yet.") });
-        return push({ from: "bot", card: <button onClick={() => go("/app/patient/records")} className="rounded-lg border border-line bg-white px-3 py-2 text-sm font-semibold">{l === "sw" ? "Fungua majibu" : "Open my results"}</button> });
+        push({ from: "bot", text: lines.join(" ") });
+        return push({ from: "bot", card: <button onClick={() => go("/app/patient/record?tab=tests")} className="rounded-lg border border-line bg-white px-3 py-2 text-sm font-semibold">{l === "sw" ? "Fungua vipimo" : "Open tests and results"}</button> });
       }
       case "change":
         return push({ from: "bot", text: l === "sw" ? "Fungua miadi yako na ubonyeze 'Reschedule' au 'Cancel'. Kughairi saa 12 kabla ni bure." : `Open the appointment and tap Reschedule or Cancel. Cancelling ${state.rules.freeCancelHours} h or more ahead is free.`, chips: [menu[0]] });
@@ -382,7 +438,7 @@ export default function Assistant() {
               ref={inputRef}
               value={input}
               onChange={(e) => setInput(e.target.value)}
-              placeholder={lang === "sw" ? "Andika ujumbe…" : "Ask about appointments, results, refills…"}
+              placeholder={lang === "sw" ? "Andika ujumbe…" : "Ask about visits, prescriptions, your record…"}
               className="h-11 flex-1 rounded-xl border border-line bg-canvas px-3.5 text-[15px] focus:border-brand-400 focus:outline-none focus:ring-4 focus:ring-brand-100"
               autoComplete="off"
             />

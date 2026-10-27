@@ -28,3 +28,9 @@ export const initials = (name: string) =>
     .join("");
 
 export const cx = (...c: (string | false | null | undefined)[]) => c.filter(Boolean).join(" ");
+
+// "SMS + App" style label for a notice that went out on more than one channel.
+export function channelLabel(n: { channel: string; also?: string[] }) {
+  const name = (c: string) => (c === "sms" ? "SMS" : c === "app" ? "App" : c === "whatsapp" ? "WhatsApp" : c);
+  return [n.channel, ...(n.also ?? [])].map(name).join(" + ");
+}

@@ -1,29 +1,31 @@
 import {
   Activity, BarChart3, Bell, Building2, CalendarDays, ClipboardList, FileText, FlaskConical, HeartHandshake, Home, LayoutDashboard,
-  Pill, RotateCcw, ScrollText, Settings, ShieldCheck, Stethoscope, Users, type LucideIcon,
+  Pill, RotateCcw, ScrollText, Settings, ShieldCheck, Stethoscope, UserRound, Users, type LucideIcon,
 } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
 import { Link, NavLink, Outlet, useLocation, useNavigate } from "react-router-dom";
 import { byId, labs, pharmacies, specialists } from "../data/seed";
-import { ago, cx } from "../lib/format";
+import { FEATURES } from "../lib/features";
+import { ago, channelLabel, cx } from "../lib/format";
 import { patients, useStore, type Role } from "../store/store";
 import { InstallButton } from "./Network";
 import { Logo } from "./PublicLayout";
 import { Avatar } from "./ui";
 
-const roles: { role: Role; label: string; icon: LucideIcon; nav: { to: string; label: string; icon: LucideIcon }[] }[] = [
+const roles: { role: Role; label: string; icon: LucideIcon; soon?: boolean; nav: { to: string; label: string; icon: LucideIcon }[] }[] = [
   { role: "patient", label: "Patient", icon: Home, nav: [
     { to: "/app/patient", label: "Home", icon: Home },
     { to: "/app/patient/appointments", label: "Appointments", icon: CalendarDays },
+    { to: "/app/patient/record", label: "Health record", icon: FileText },
     { to: "/app/patient/care", label: "My care plan", icon: HeartHandshake },
-    { to: "/app/patient/records", label: "Records & privacy", icon: FileText },
+    { to: "/app/patient/profile", label: "Profile", icon: UserRound },
   ] },
   { role: "specialist", label: "Specialist", icon: Stethoscope, nav: [
     { to: "/app/specialist", label: "Today", icon: ClipboardList },
     { to: "/app/specialist/performance", label: "Performance", icon: BarChart3 },
   ] },
-  { role: "lab", label: "Laboratory", icon: FlaskConical, nav: [{ to: "/app/lab", label: "Requests & results", icon: FlaskConical }] },
-  { role: "pharmacy", label: "Pharmacy", icon: Pill, nav: [{ to: "/app/pharmacy", label: "Prescriptions", icon: Pill }] },
+  { role: "lab", label: "Laboratory", icon: FlaskConical, soon: !FEATURES.lab, nav: [{ to: "/app/lab", label: "Requests & results", icon: FlaskConical }] },
+  { role: "pharmacy", label: "Pharmacy", icon: Pill, soon: !FEATURES.pharmacy, nav: [{ to: "/app/pharmacy", label: "Prescriptions", icon: Pill }] },
   { role: "org", label: "Patient org", icon: Users, nav: [{ to: "/app/org", label: "Community", icon: Users }] },
   { role: "admin", label: "Admin", icon: LayoutDashboard, nav: [
     { to: "/app/admin", label: "Overview", icon: LayoutDashboard },
@@ -34,11 +36,14 @@ const roles: { role: Role; label: string; icon: LucideIcon; nav: { to: string; l
   ] },
 ];
 
-const shortLabel: Record<string, string> = { "My care plan": "Care plan", "Records & privacy": "Records", "Rules & pathways": "Rules", "Audit & complaints": "Audit" };
+const shortLabel: Record<string, string> = { "My care plan": "Care plan", "Health record": "Record", "Rules & pathways": "Rules", "Audit & complaints": "Audit" };
 
 function identity(role: Role, s: ReturnType<typeof useStore>["state"]) {
   switch (role) {
-    case "patient": return { name: patients[s.patientId].name, sub: "Patient · Lupus pathway", hue: 330 };
+    case "patient": {
+      const p = patients[s.patientId];
+      return { name: p.name, sub: s.patientId === "pt-grace" ? "Demo patient · Lupus pathway" : `Patient · ID ${p.kyc?.status === "verified" ? "verified" : "in review"}`, hue: 330 };
+    }
     case "specialist": { const sp = byId(specialists, s.specialistId)!; return { name: sp.name, sub: sp.title, hue: sp.hue }; }
     case "lab": return { name: byId(labs, s.labId)!.name, sub: "Laboratory partner", hue: 220 };
     case "pharmacy": return { name: byId(pharmacies, s.pharmacyId)!.name, sub: "Pharmacy partner", hue: 140 };
@@ -67,7 +72,7 @@ export default function AppLayout() {
     return () => document.removeEventListener("mousedown", close);
   }, []);
 
-  const notices = state.notices.filter((n) => n.to === role.role && (role.role !== "patient" || n.patientId === state.patientId));
+  const notices = state.notices.filter((n) => n.to === role.role && (role.role !== "patient" || n.patientId === state.patientId) && (role.role !== "specialist" || !n.specialistId || n.specialistId === state.specialistId));
   const unread = notices.filter((n) => !n.read).length;
 
   return (
@@ -84,10 +89,11 @@ export default function AppLayout() {
               <button
                 key={r.role}
                 onClick={() => navigate(r.nav[0].to)}
-                className={cx("flex flex-col items-center gap-1 rounded-xl px-1 py-2 text-[11px] font-semibold transition focus-ring", r.role === role.role ? "bg-brand-600 text-white shadow-sm" : "bg-canvas text-ink-soft hover:bg-brand-50 hover:text-brand-700")}
+                className={cx("relative flex flex-col items-center gap-1 rounded-xl px-1 py-2 text-[11px] font-semibold transition focus-ring", r.role === role.role ? "bg-brand-600 text-white shadow-sm" : r.soon ? "bg-canvas text-ink-mute hover:bg-canvas" : "bg-canvas text-ink-soft hover:bg-brand-50 hover:text-brand-700")}
               >
-                <r.icon size={16} />
+                <r.icon size={16} className={r.soon && r.role !== role.role ? "opacity-50" : undefined} />
                 {r.label}
+                {r.soon && <span className="absolute -right-1 -top-1 rounded-full bg-ink px-1.5 py-0.5 text-[9px] font-bold uppercase leading-none text-white">Soon</span>}
               </button>
             ))}
           </div>
@@ -107,10 +113,17 @@ export default function AppLayout() {
         </nav>
         <div className="m-3 rounded-2xl bg-gradient-to-br from-brand-600 to-brand-800 p-4 text-white">
           <p className="flex items-center gap-2 text-sm font-semibold"><ShieldCheck size={16} /> Demo environment</p>
-          <p className="mt-1 text-xs text-white/80">Fictional data. Actions in one portal show up in the others.</p>
-          <button onClick={() => dispatch({ type: "reset" })} className="mt-3 inline-flex items-center gap-1.5 rounded-lg bg-white/15 px-2.5 py-1.5 text-xs font-semibold hover:bg-white/25 focus-ring">
-            <RotateCcw size={13} /> Reset demo data
-          </button>
+          <p className="mt-1 text-xs text-white/80">Fictional demo doctors. Actions in one portal show up in the others.</p>
+          <div className="mt-3 flex flex-wrap gap-2">
+            {state.myPatientId && (
+              <button onClick={() => { dispatch({ type: "usePatient", id: state.patientId === state.myPatientId ? "pt-grace" : state.myPatientId! }); navigate("/app/patient"); }} className="inline-flex items-center gap-1.5 rounded-lg bg-white px-2.5 py-1.5 text-xs font-semibold text-brand-800 hover:bg-brand-50 focus-ring">
+                <UserRound size={13} /> {state.patientId === state.myPatientId ? "View demo patient" : "Back to my account"}
+              </button>
+            )}
+            <button onClick={() => dispatch({ type: "reset" })} className="inline-flex items-center gap-1.5 rounded-lg bg-white/15 px-2.5 py-1.5 text-xs font-semibold hover:bg-white/25 focus-ring">
+              <RotateCcw size={13} /> Reset demo data
+            </button>
+          </div>
         </div>
       </aside>
 
@@ -125,7 +138,7 @@ export default function AppLayout() {
               <label className="lg:hidden">
                 <span className="sr-only">View as</span>
                 <select value={role.role} onChange={(e) => navigate(roles.find((r) => r.role === e.target.value)!.nav[0].to)} className="h-10 rounded-xl border border-line bg-white px-2.5 text-sm font-semibold text-ink">
-                  {roles.map((r) => <option key={r.role} value={r.role}>View as: {r.label}</option>)}
+                  {roles.map((r) => <option key={r.role} value={r.role}>View as: {r.label}{r.soon ? " (soon)" : ""}</option>)}
                 </select>
               </label>
               <p className="hidden truncate text-sm text-ink-mute lg:block">
@@ -153,7 +166,7 @@ export default function AppLayout() {
                           <div className="min-w-0">
                             <p className="text-sm font-semibold text-ink">{n.title}</p>
                             <p className="text-[13px] text-ink-soft">{n.body}</p>
-                            <p className="mt-1 text-[11px] font-medium uppercase tracking-wide text-ink-mute">{n.channel} · {ago(n.at)}</p>
+                            <p className="mt-1 text-[11px] font-medium uppercase tracking-wide text-ink-mute">{channelLabel(n)} · {ago(n.at)}</p>
                           </div>
                         </li>
                       ))}

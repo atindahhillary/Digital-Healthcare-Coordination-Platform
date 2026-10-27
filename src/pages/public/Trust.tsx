@@ -7,6 +7,7 @@ const data: [string, (0 | 1 | 2)[]][] = [
   ["Profile & contact details", [2, 1, 1, 1, 1, 1, 1]],
   ["Appointments", [2, 2, 0, 0, 2, 0, 1]],
   ["Consultation notes", [2, 2, 0, 0, 0, 0, 0]],
+  ["Health record, after a confirmed booking", [2, 2, 0, 0, 0, 0, 0]],
   ["Lab orders & results", [2, 2, 1, 0, 0, 0, 0]],
   ["Prescriptions", [2, 2, 0, 1, 0, 0, 0]],
   ["Referrals", [2, 2, 0, 0, 1, 0, 0]],

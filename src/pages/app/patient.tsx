@@ -1,17 +1,27 @@
 import {
-  ArrowRight, BookOpen, CalendarPlus, CheckCircle2, ChevronRight, Clock, Eye, FlaskConical, HeartHandshake, Lock, MessageSquareWarning,
-  Pill, Send, Siren, Sparkles, Star, Truck, Users,
+  ArrowRight, BookOpen, CalendarPlus, Check, CheckCircle2, ChevronRight, Clock, Download, Eye, FileText, FlaskConical, HeartHandshake, Lock, MessageSquareWarning,
+  Pill, Send, ShieldCheck, Siren, Sparkles, Star, Trash2, UserRound, Users,
 } from "lucide-react";
 import { useMemo, useState } from "react";
-import { Link } from "react-router-dom";
+import { Link, useNavigate, useSearchParams } from "react-router-dom";
 import { AppointmentCard, statusMeta, Timeline } from "../../components/Appointment";
-import { Avatar, Badge, Button, Card, CardHead, Empty, Field, inputCls, PageTitle, Progress, Tabs } from "../../components/ui";
-import { byId, labs, pathways, pharmacies, specialists } from "../../data/seed";
-import { ago, cx, date, dateTime, kes } from "../../lib/format";
-import { patients, useStore, type LabStatus, type Prescription, type RxStatus } from "../../store/store";
+import { downloadRecord, KycBadge, PatientFile } from "../../components/PatientFile";
+import { PrescriptionCard } from "../../components/Prescriptions";
+import { toast } from "../../components/Toaster";
+import { Avatar, Badge, Button, Card, CardHead, Empty, Field, inputCls, Modal, PageTitle, Progress } from "../../components/ui";
+import { byId, pathways, specialists } from "../../data/seed";
+import { FEATURES } from "../../lib/features";
+import { ago, channelLabel, cx, date, dateTime } from "../../lib/format";
+import { BLOOD_GROUPS, CONDITION_OPTIONS, splitList } from "../../lib/kyc";
+import { enrolledOf, patients, useStore, type Prescription } from "../../store/store";
 import { every, kindIcon } from "../public/Pathways";
 
-const ACTIVE = ["confirmed", "ready", "delayed", "recovery", "in_consult"];
+// Re-exported for the portals that share these step trackers.
+export { labSteps, MiniSteps, rxSteps } from "../../components/Steps";
+import { MiniSteps } from "../../components/Steps";
+
+const ACTIVE = ["requested", "confirmed", "ready", "delayed", "recovery", "in_consult"];
+const DEMO = "pt-grace";
 
 function useMine() {
   const { state } = useStore();
@@ -26,38 +36,9 @@ function useMine() {
   };
 }
 
-export const labSteps: { s: LabStatus; l: string }[] = [
-  { s: "requested", l: "Ordered" },
-  { s: "booked", l: "Collection booked" },
-  { s: "sample_collected", l: "Collected" },
-  { s: "processing", l: "Processing" },
-  { s: "result_ready", l: "Results" },
-];
-export const rxSteps: { s: RxStatus; l: string }[] = [
-  { s: "received", l: "Received" },
-  { s: "verified", l: "Verified" },
-  { s: "ready", l: "Packed" },
-  { s: "out_for_delivery", l: "On the way" },
-  { s: "delivered", l: "Delivered" },
-];
-
-export function MiniSteps<T extends string>({ steps, current }: { steps: { s: T; l: string }[]; current: T }) {
-  const idx = steps.findIndex((x) => x.s === current);
-  return (
-    <ol className="flex gap-1.5">
-      {steps.map((x, i) => (
-        <li key={x.s} className="min-w-0 flex-1">
-          <div className={cx("h-1.5 rounded-full", i <= idx ? "bg-brand-500" : "bg-line")} />
-          <p className={cx("mt-1 truncate text-[10px] font-semibold sm:text-[11px]", i <= idx ? "text-brand-700" : "text-ink-mute")}>{x.l}</p>
-        </li>
-      ))}
-    </ol>
-  );
-}
-
 function RefillCard({ p }: { p: Prescription }) {
   const { dispatch } = useStore();
-  const days = p.nextRefill ? Math.ceil((+new Date(p.nextRefill) - Date.now()) / 86400000) : undefined;
+  const days = p.nextRefill ? Math.ceil((+new Date(p.nextRefill) - Date.now()) / 86400000) : 0;
   return (
     <Card className="p-5">
       <div className="flex items-start justify-between gap-3">
@@ -68,35 +49,77 @@ function RefillCard({ p }: { p: Prescription }) {
             <p className="text-sm text-ink-mute">{p.items.map((i) => i.drug).join(", ")}</p>
           </div>
         </div>
-        {days !== undefined && <Badge tone={days <= 5 ? "warn" : "neutral"}>Due in {days} d</Badge>}
+        <Badge tone={days <= 5 ? "warn" : "neutral"}>Due in {Math.max(days, 0)} d</Badge>
       </div>
-      {p.nextRefill ? (
-        <Button className="mt-4 w-full" variant="secondary" onClick={() => dispatch({ type: "refill", id: p.id })} disabled={p.refillsLeft < 1}><Send size={15} /> Request refill ({p.refillsLeft} left)</Button>
-      ) : (
-        <div className="mt-4"><MiniSteps steps={rxSteps} current={p.status === "issue" ? "verified" : p.status} /></div>
-      )}
+      <Button className="mt-4 w-full" variant="secondary" onClick={() => dispatch({ type: "refill", id: p.id })} disabled={p.refillsLeft < 1}><Send size={15} /> Get my refill ({p.refillsLeft} left)</Button>
+      <p className="mt-2 text-xs text-ink-mute">You then choose the pharmacy you prefer.</p>
     </Card>
   );
 }
 
 export function PatientHome() {
-  const { state, me, appts, labOrders, rx } = useMine();
+  const { state, me, appts, rx } = useMine();
+  const { dispatch } = useStore();
+  const navigate = useNavigate();
   const active = appts.filter((a) => ACTIVE.includes(a.status));
   const next = active[0];
   const notices = state.notices.filter((n) => n.to === "patient" && n.patientId === state.patientId).slice(0, 5);
-  const refill = rx.find((p) => p.nextRefill) ?? rx[0];
-  const openLab = labOrders.find((o) => o.status !== "result_ready");
-  const p = pathways.find((x) => x.id === state.enrolledPathways[0]);
+  const waiting = rx.filter((r) => r.status === "issued");
+  const refill = rx.find((p) => p.nextRefill && ["delivered", "collected"].includes(p.status));
+  const advised = [...appts].reverse().find((a) => a.testsAdvised?.length);
+  const hasResults = state.labOrders.some((o) => o.patientId === state.patientId && o.results);
+  const enrolled = enrolledOf(state);
+  const p = pathways.find((x) => x.id === enrolled[0]);
+  const viewingDemo = state.patientId === DEMO;
+  const mine = state.myPatientId === state.patientId;
+  const firstVisit = mine && appts.filter((a) => a.status !== "cancelled" && a.status !== "declined").length === 0;
+  const hour = new Date().getHours();
 
   return (
     <>
-      <PageTitle title={`Good ${new Date().getHours() < 12 ? "morning" : new Date().getHours() < 17 ? "afternoon" : "evening"}, ${me.name.split(" ")[0]}`} sub="Here is everything happening in your care today." />
+      {viewingDemo && (
+        <div className="mb-5 flex flex-wrap items-center gap-3 rounded-2xl border border-sky2-100 bg-sky2-50 p-3.5 text-sm text-sky2-700">
+          <UserRound size={18} className="shrink-0" />
+          <p className="min-w-0 flex-1">You are viewing the demo patient, <b>Grace Wambui</b>.</p>
+          {state.myPatientId ? (
+            <Button size="sm" onClick={() => dispatch({ type: "usePatient", id: state.myPatientId! })}>Back to my account</Button>
+          ) : (
+            <Button size="sm" onClick={() => navigate("/register")}>Register as yourself <ArrowRight size={14} /></Button>
+          )}
+        </div>
+      )}
+
+      <PageTitle title={`Good ${hour < 12 ? "morning" : hour < 17 ? "afternoon" : "evening"}, ${me.name.split(" ")[0]}`} sub="Here is everything happening in your care today." />
+
+      {firstVisit && (
+        <Card className="mb-6 overflow-hidden border-brand-200">
+          <div className="bg-gradient-to-r from-brand-600 to-brand-800 p-5 text-white">
+            <p className="flex items-center gap-2 text-lg font-extrabold"><Sparkles size={18} /> Welcome. Let's get your first visit booked.</p>
+            <p className="mt-1 text-sm text-white/80">Your account is ready. Here is where you are.</p>
+          </div>
+          <ul className="divide-y divide-line">
+            {[
+              { done: true, t: "Account created", s: "Phone verified and consent saved" },
+              { done: me.kyc?.status === "verified", t: "ID check", s: me.kyc?.status === "verified" ? "Verified" : "In review. Usually within 24 hours. You can book meanwhile" },
+              { done: !!(me.emergency && (me.conditions.length || me.allergies?.length || me.medications?.length)), t: "Health basics", s: "Add or change them any time in your profile" },
+              { done: false, t: "Book your first specialist", s: "The doctor confirms, then you both get the video link and reminders", cta: true },
+            ].map((x) => (
+              <li key={x.t} className="flex flex-wrap items-center gap-x-3 gap-y-2 px-5 py-3.5">
+                <span className={cx("grid h-7 w-7 shrink-0 place-items-center rounded-full", x.done ? "bg-brand-600 text-white" : "border-2 border-line text-ink-mute")}>{x.done ? <Check size={15} strokeWidth={3} /> : null}</span>
+                <span className="min-w-0 flex-1 basis-40"><b className="block text-[15px]">{x.t}</b><span className="text-[13px] text-ink-mute">{x.s}</span></span>
+                {x.cta && <Button size="sm" className="ml-10 sm:ml-0" onClick={() => navigate("/find-care")}>Find a specialist</Button>}
+              </li>
+            ))}
+          </ul>
+        </Card>
+      )}
+
       <div className="mb-6 grid grid-cols-2 gap-3 sm:grid-cols-4">
         {[
           { to: "/find-care", icon: CalendarPlus, t: "Book a visit", s: "Video or in person", c: "bg-sky2-500" },
-          { to: "/app/patient/records", icon: FlaskConical, t: "Lab results", s: openLab ? "1 in progress" : "All in", c: "bg-violet-500" },
-          { to: "/app/patient/records", icon: Pill, t: "Pharmacy", s: "Refills & delivery", c: "bg-orange-500" },
-          { to: "/app/patient/care", icon: Users, t: "Support", s: "Groups & learning", c: "bg-pink-500" },
+          { to: "/app/patient/record", icon: FileText, t: "Health record", s: "Visits, notes, results", c: "bg-violet-500" },
+          { to: "/app/patient/record?tab=rx", icon: Pill, t: "Prescriptions", s: waiting.length ? `${waiting.length} waiting for you` : "Codes and reminders", c: "bg-orange-500" },
+          { to: "/app/patient/care", icon: Users, t: "Care plan", s: "Referrals and support", c: "bg-pink-500" },
         ].map((x) => (
           <Link key={x.t} to={x.to} className="rounded-3xl border border-line bg-white p-4 shadow-card transition hover:-translate-y-0.5 hover:shadow-lift">
             <span className={`grid h-11 w-11 place-items-center rounded-full text-white shadow-sm ${x.c}`}><x.icon size={20} /></span>
@@ -105,12 +128,19 @@ export function PatientHome() {
           </Link>
         ))}
       </div>
+
       <div className="grid gap-6 lg:grid-cols-[1.6fr_1fr]">
-        <div className="space-y-6">
-          {next ? <AppointmentCard a={next} focus /> : (
+        <div className="min-w-0 space-y-6">
+          {waiting.length > 0 && (
+            <div className="space-y-3">
+              <h2 className="flex items-center gap-2 font-bold"><span className="h-2.5 w-2.5 animate-pulse rounded-full bg-amber-500" /> Needs you</h2>
+              {waiting.map((r) => <PrescriptionCard key={r.id} rx={r} />)}
+            </div>
+          )}
+          {next ? <AppointmentCard a={next} focus /> : !firstVisit && (
             <Card><Empty icon={<CalendarPlus />} title="No upcoming appointments" body="Book your next review from the directory." /></Card>
           )}
-          {next && next.status === "confirmed" && (
+          {next && next.status === "confirmed" && viewingDemo && (
             <Card className="flex flex-wrap items-center gap-4 border-dashed bg-gradient-to-r from-brand-50 to-white p-5">
               <Sparkles className="text-brand-600" />
               <div className="min-w-0 flex-1">
@@ -122,19 +152,15 @@ export function PatientHome() {
           )}
           <div className="grid gap-4 sm:grid-cols-2">
             {refill && <RefillCard p={refill} />}
-            {openLab ? (
+            {advised && !FEATURES.lab && !hasResults && (
               <Card className="p-5">
                 <div className="flex items-center gap-3">
                   <span className="grid h-11 w-11 place-items-center rounded-xl bg-violet-50 text-violet-700"><FlaskConical size={20} /></span>
-                  <div>
-                    <p className="font-bold">Lab tests in progress</p>
-                    <p className="text-sm text-ink-mute">{openLab.tests.join(", ")} · {byId(labs, openLab.labId)?.name}</p>
-                  </div>
+                  <div><p className="font-bold">Tests recommended</p><p className="text-sm text-ink-mute">{byId(specialists, advised.specialistId)?.name} · {date(advised.at)}</p></div>
                 </div>
-                <div className="mt-4"><MiniSteps steps={labSteps} current={openLab.status} /></div>
+                <div className="mt-3 flex flex-wrap gap-1.5">{advised.testsAdvised!.map((t) => <Badge key={t} tone="info">{t}</Badge>)}</div>
+                <p className="mt-3 text-xs text-ink-mute">Take them at any accredited lab. Digital lab booking and results come in a later phase.</p>
               </Card>
-            ) : (
-              <Card className="p-5"><p className="font-bold">All results are in</p><Link to="/app/patient/records" className="mt-2 inline-flex text-sm font-semibold text-brand-700">View results</Link></Card>
             )}
           </div>
           {active.length > 1 && (
@@ -144,14 +170,14 @@ export function PatientHome() {
             </div>
           )}
         </div>
-        <div className="space-y-6">
+        <div className="min-w-0 space-y-6">
           {p && (
             <Card>
               <CardHead title={p.name} sub="Your care plan" action={<Link to="/app/patient/care" className="text-sm font-semibold text-brand-700">Open</Link>} />
               <ul className="divide-y divide-line">
                 {p.steps.slice(0, 4).map((s, i) => {
                   const Icon = kindIcon[s.kind];
-                  const status = ["Today", "Processing", "Processing", "In 4 days"][i];
+                  const status = viewingDemo ? ["Today", "Recommended", "Recommended", "In 4 days"][i] : "Scheduled";
                   return (
                     <li key={s.label} className="flex items-center gap-3 px-5 py-3">
                       <Icon size={17} className="shrink-0" style={{ color: p.colour }} />
@@ -166,11 +192,12 @@ export function PatientHome() {
           <Card>
             <CardHead title="Latest updates" />
             <ul className="divide-y divide-line">
+              {notices.length === 0 && <li className="p-5 text-sm text-ink-mute">Updates from your doctors will show here.</li>}
               {notices.map((n) => (
                 <li key={n.id} className="px-5 py-3">
                   <p className="text-sm font-semibold">{n.title}</p>
                   <p className="text-[13px] text-ink-soft">{n.body}</p>
-                  <p className="mt-1 text-[11px] font-semibold uppercase tracking-wide text-ink-mute">{n.channel} · {ago(n.at)}</p>
+                  <p className="mt-1 text-[11px] font-semibold uppercase tracking-wide text-ink-mute">{channelLabel(n)} · {ago(n.at)}</p>
                 </li>
               ))}
             </ul>
@@ -191,16 +218,23 @@ export function PatientAppointments() {
   const [tab, setTab] = useState<"upcoming" | "past" | "other">("upcoming");
   const upcoming = appts.filter((a) => ACTIVE.includes(a.status));
   const past = appts.filter((a) => a.status === "completed").reverse();
-  const other = appts.filter((a) => ["cancelled", "rescheduled", "reassigned"].includes(a.status)).reverse();
+  const other = appts.filter((a) => ["cancelled", "rescheduled", "reassigned", "declined"].includes(a.status)).reverse();
   const [fb, setFb] = useState<string>();
   const [fbText, setFbText] = useState("");
 
   return (
     <>
       <PageTitle title="Appointments" sub="Book, follow, reschedule or cancel." action={<Link to="/find-care" className="inline-flex h-11 items-center gap-2 rounded-xl bg-brand-600 px-4 text-sm font-semibold text-white hover:bg-brand-700"><CalendarPlus size={16} /> Book new</Link>} />
-      <Tabs value={tab} onChange={setTab} items={[{ value: "upcoming", label: "Upcoming", count: upcoming.length }, { value: "past", label: "Past", count: past.length }, { value: "other", label: "Changed", count: other.length }]} />
+      <div role="tablist" className="inline-flex max-w-full gap-1 overflow-x-auto rounded-xl bg-canvas p-1 no-scrollbar">
+        {([["upcoming", "Upcoming", upcoming.length], ["past", "Past", past.length], ["other", "Changed", other.length]] as const).map(([v, l, n]) => (
+          <button key={v} role="tab" aria-selected={tab === v} onClick={() => setTab(v)} className={cx("whitespace-nowrap rounded-lg px-3 py-1.5 text-sm font-semibold transition focus-ring", tab === v ? "bg-white text-ink shadow-sm" : "text-ink-mute hover:text-ink")}>
+            {l}<span className="ml-1.5 rounded-full bg-brand-100 px-1.5 text-xs text-brand-800">{n}</span>
+          </button>
+        ))}
+      </div>
       <div className="mt-5 space-y-4">
-        {tab === "upcoming" && (upcoming.length ? upcoming.map((a) => <AppointmentCard key={a.id} a={a} />) : <Card><Empty icon={<CalendarPlus />} title="Nothing booked" /></Card>)}
+        {tab === "upcoming" && (upcoming.length ? upcoming.map((a) => <AppointmentCard key={a.id} a={a} />) : <Card><Empty icon={<CalendarPlus />} title="Nothing booked" body="Find a specialist and book. They confirm, then you get the video link and reminders." /></Card>)}
+        {tab === "past" && (past.length === 0 && <Card><Empty icon={<Clock />} title="No past visits yet" /></Card>)}
         {tab === "past" && past.map((a) => {
           const sp = byId(specialists, a.specialistId)!;
           return (
@@ -252,110 +286,169 @@ export function PatientAppointments() {
   );
 }
 
-export function PatientRecords() {
-  const { state, labOrders, rx, appts } = useMine();
-  const { dispatch } = useStore();
-  const [tab, setTab] = useState<"results" | "rx" | "privacy">("results");
-  const ids = useMemo(() => new Set([...appts.map((a) => a.id), ...labOrders.map((o) => o.id), ...rx.map((p) => p.id), "Consent", `Patient ${state.patientId}`]), [appts, labOrders, rx, state.patientId]);
-  const myAudit = state.audit.filter((a) => [...ids].some((id) => a.resource.includes(id)));
+// Like a student portal for your health: one record that grows with every visit.
+export function PatientRecord() {
+  const { state } = useStore();
+  const [params] = useSearchParams();
+  const t = params.get("tab");
+  return (
+    <>
+      <PageTitle
+        title="Health record"
+        sub="Your visits, prescriptions and results, kept in one place. Specialists see it only after they confirm a booking with you."
+        action={<Button variant="secondary" size="sm" onClick={() => downloadRecord(state, state.patientId)}><Download size={15} /> Download my record</Button>}
+      />
+      <PatientFile key={state.patientId} patientId={state.patientId} viewer="patient" initialTab={t === "rx" || t === "visits" || t === "tests" ? t : undefined} />
+    </>
+  );
+}
+
+export function PatientProfile() {
+  const { state, dispatch } = useStore();
+  const navigate = useNavigate();
+  const id = state.patientId;
+  const p = patients[id];
+  const mine = id === state.myPatientId;
+  const k = p.kyc;
+  const [conditions, setConditions] = useState<string[]>(p.conditions);
+  const [other, setOther] = useState("");
+  const [allergies, setAllergies] = useState((p.allergies ?? []).join(", "));
+  const [meds, setMeds] = useState((p.medications ?? []).join("\n"));
+  const [blood, setBlood] = useState(p.bloodGroup ?? "Not sure");
+  const [em, setEm] = useState(p.emergency ?? { name: "", relation: "", phone: "" });
+  const [del, setDel] = useState(false);
+
+  const appts = state.appointments.filter((a) => a.patientId === id);
+  const ids = useMemo(
+    () => [...appts.map((a) => a.id), ...state.labOrders.filter((o) => o.patientId === id).map((o) => o.id), ...state.prescriptions.filter((r) => r.patientId === id).map((r) => r.id), id],
+    [appts, state.labOrders, state.prescriptions, id],
+  );
+  const log = state.audit.filter((a) => ids.some((x) => a.resource.includes(x)));
+  const consents = state.consents.filter((c) => c.patientId === id);
+
+  function save() {
+    dispatch({
+      type: "profileUpdate", id,
+      patch: { conditions: [...conditions, ...splitList(other)], allergies: splitList(allergies), medications: splitList(meds), bloodGroup: blood === "Not sure" ? undefined : blood, emergency: em.name ? em : undefined },
+    });
+    setOther("");
+  }
 
   return (
     <>
-      <PageTitle title="Records & privacy" sub="Your results, prescriptions and who can see them." />
-      <Tabs value={tab} onChange={setTab} items={[{ value: "results", label: "Lab results" }, { value: "rx", label: "Prescriptions" }, { value: "privacy", label: "Consent & access log" }]} />
-      <div className="mt-5 space-y-4">
-        {tab === "results" && labOrders.map((o) => (
-          <Card key={o.id}>
-            <CardHead
-              title={o.tests.join(" · ")}
-              sub={`${byId(labs, o.labId)?.name} · ordered by ${byId(specialists, o.specialistId)?.name} · ${date(o.createdAt)}`}
-              action={<Badge tone={o.status === "result_ready" ? "ok" : "info"}>{labSteps.find((x) => x.s === o.status)?.l}</Badge>}
-            />
-            {o.results ? (
-              <div className="overflow-x-auto">
-                <table className="w-full min-w-[480px] text-sm">
-                  <thead><tr className="text-left text-xs uppercase tracking-wide text-ink-mute"><th className="px-5 py-2.5">Test</th><th className="px-5 py-2.5">Result</th><th className="px-5 py-2.5">Normal range</th></tr></thead>
-                  <tbody>
-                    {o.results.map((r) => (
-                      <tr key={r.test} className="border-t border-line">
-                        <td className="px-5 py-2.5 font-medium">{r.test}</td>
-                        <td className="px-5 py-2.5">
-                          <span className={cx("font-bold", r.flag === "high" ? "text-rose-700" : r.flag === "low" ? "text-amber-700" : "text-ink")}>{r.value}</span> <span className="text-ink-mute">{r.unit}</span>
-                          {r.flag && <Badge tone={r.flag === "high" ? "bad" : "warn"} className="ml-2">{r.flag}</Badge>}
-                        </td>
-                        <td className="px-5 py-2.5 text-ink-mute">{r.range}</td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-                <p className="border-t border-line px-5 py-3 text-xs text-ink-mute">Released {o.releasedAt && dateTime(o.releasedAt)}. Your doctor will explain what these mean for you at your next review.</p>
+      <PageTitle title="Profile and privacy" sub="Your identity details, health basics, and who can see your information." />
+      <div className="grid gap-6 lg:grid-cols-2">
+        <div className="min-w-0 space-y-6">
+          <Card>
+            <CardHead title="Identity and ID check" action={<KycBadge status={k?.status} />} />
+            <div className="p-5">
+              <div className="flex items-center gap-4">
+                <Avatar name={p.name} hue={(p.age * 37) % 360} size={56} />
+                <div className="min-w-0"><p className="text-lg font-bold">{p.name}</p><p className="text-sm text-ink-mute">{p.phone}{p.email ? ` · ${p.email}` : ""}</p></div>
               </div>
-            ) : (
-              <div className="p-5"><MiniSteps steps={labSteps} current={o.status} /></div>
-            )}
+              {k ? (
+                <dl className="mt-5 grid grid-cols-[130px_1fr] gap-x-3 gap-y-2 text-sm">
+                  {[
+                    [k.idType, k.idMasked],
+                    ["Date of birth", new Date(k.dob).toLocaleDateString("en-KE", { day: "numeric", month: "long", year: "numeric" })],
+                    ["Sex", k.sex],
+                    ["Nationality", k.nationality],
+                    ["Lives in", `${k.town}, ${k.county}`],
+                    ["Messages in", k.language],
+                    ["Submitted", date(k.submittedAt)],
+                    ...(k.guardian ? [["Guardian", `${k.guardian.name} (${k.guardian.relation})`]] : []),
+                  ].map(([a, b]) => <div key={a} className="contents"><dt className="text-ink-mute">{a}</dt><dd className="font-semibold">{b}</dd></div>)}
+                </dl>
+              ) : <p className="mt-4 text-sm text-ink-mute">No ID submitted.</p>}
+              {k?.status === "pending" && <p className="mt-4 rounded-xl bg-amber-50 p-3 text-[13px] text-amber-900">We are checking your ID, usually within 24 hours. You can book and see doctors meanwhile. (Demo: approve it from the Admin view, under Providers.)</p>}
+              {k?.status === "verified" && <p className="mt-4 flex items-center gap-2 rounded-xl bg-emerald-50 p-3 text-[13px] font-medium text-emerald-800"><ShieldCheck size={15} /> Verified. Doctors see a verified badge next to your name.</p>}
+              <p className="mt-3 text-xs text-ink-mute">Only the last four digits of your ID number are kept.</p>
+            </div>
           </Card>
-        ))}
-        {tab === "rx" && rx.map((p) => (
-          <Card key={p.id}>
-            <CardHead title={`${p.isRefill ? "Refill" : "Prescription"} · ${byId(pharmacies, p.pharmacyId)?.name}`} sub={`From ${byId(specialists, p.specialistId)?.name} · ${date(p.createdAt)}`} action={p.status === "issue" ? <Badge tone="warn">Needs attention</Badge> : <Badge tone={p.status === "delivered" ? "ok" : "info"}>{rxSteps.find((x) => x.s === p.status)?.l}</Badge>} />
+
+          <Card>
+            <CardHead title="Health basics" sub="Your doctors see these once they confirm a booking." />
+            <form className="space-y-5 p-5" onSubmit={(e) => { e.preventDefault(); save(); }}>
+              <div>
+                <p className="mb-2 text-sm font-semibold">Long-term conditions</p>
+                <div className="flex flex-wrap gap-2">
+                  {[...new Set([...CONDITION_OPTIONS, ...conditions])].map((c) => {
+                    const on = conditions.includes(c);
+                    return <button key={c} type="button" aria-pressed={on} onClick={() => setConditions(on ? conditions.filter((x) => x !== c) : [...conditions, c])} className={cx("h-9 rounded-full border px-3 text-[13px] font-semibold focus-ring", on ? "border-brand-500 bg-brand-600 text-white" : "border-line text-ink-soft hover:border-brand-300")}>{c}</button>;
+                  })}
+                </div>
+                <input className={cx(inputCls, "mt-3")} value={other} onChange={(e) => setOther(e.target.value)} placeholder="Add another (separate with commas)" aria-label="Other conditions" />
+              </div>
+              <Field label="Allergies" hint="Separate with commas."><input className={inputCls} value={allergies} onChange={(e) => setAllergies(e.target.value)} /></Field>
+              <Field label="Medicines now" hint="One per line."><textarea className={inputCls} rows={3} value={meds} onChange={(e) => setMeds(e.target.value)} /></Field>
+              <Field label="Blood group">
+                <select className={inputCls} value={blood} onChange={(e) => setBlood(e.target.value)}>{BLOOD_GROUPS.map((b) => <option key={b}>{b}</option>)}</select>
+              </Field>
+              <div className="space-y-3 rounded-2xl bg-canvas p-4">
+                <p className="text-sm font-bold">Emergency contact</p>
+                <input className={inputCls} placeholder="Name" aria-label="Emergency contact name" value={em.name} onChange={(e) => setEm({ ...em, name: e.target.value })} />
+                <div className="grid grid-cols-2 gap-3">
+                  <input className={inputCls} placeholder="Relationship" aria-label="Relationship" value={em.relation} onChange={(e) => setEm({ ...em, relation: e.target.value })} />
+                  <input className={inputCls} placeholder="Mobile" aria-label="Emergency contact mobile" value={em.phone} onChange={(e) => setEm({ ...em, phone: e.target.value })} />
+                </div>
+              </div>
+              <Button type="submit"><Check size={16} /> Save changes</Button>
+            </form>
+          </Card>
+        </div>
+
+        <div className="min-w-0 space-y-6">
+          <Card>
+            <CardHead title="Who can see my information" sub="Changes take effect immediately and are logged." />
             <ul className="divide-y divide-line">
-              {p.items.map((i) => (
-                <li key={i.drug} className="flex flex-wrap items-center justify-between gap-2 px-5 py-3 text-sm">
-                  <span><b>{i.drug}</b> <span className="text-ink-mute">· {i.dose} · ×{i.qty}</span></span>
-                  <span className="text-ink-soft">{i.available === false ? <Badge tone="warn">Out of stock</Badge> : i.price ? kes(i.price) : "Price pending"}</span>
+              {consents.map((c) => (
+                <li key={c.party} className="flex items-start gap-3 px-5 py-3.5">
+                  <div className="min-w-0 flex-1">
+                    <p className="flex items-center gap-2 text-sm font-semibold">{c.party} {c.locked && <Lock size={13} className="text-ink-mute" />}</p>
+                    <p className="text-[13px] text-ink-mute">{c.scope}</p>
+                  </div>
+                  <button role="switch" aria-checked={c.granted} aria-label={`Access for ${c.party}`} disabled={c.locked} onClick={() => dispatch({ type: "consent", party: c.party })} className={cx("relative h-6 w-11 shrink-0 rounded-full transition focus-ring disabled:opacity-60", c.granted ? "bg-brand-600" : "bg-slate-300")}>
+                    <span className={cx("absolute top-0.5 h-5 w-5 rounded-full bg-white shadow transition", c.granted ? "left-[22px]" : "left-0.5")} />
+                  </button>
+                </li>
+              ))}
+              {consents.length === 0 && <li className="p-5 text-sm text-ink-mute">When you book a specialist and they confirm, they appear here and you can withdraw their access at any time.</li>}
+            </ul>
+            <p className="border-t border-line px-5 py-3 text-xs text-ink-mute">A specialist can open your file only after confirming a booking with you. Pharmacies, labs and patient organisations never get it by default.</p>
+          </Card>
+
+          <Card>
+            <CardHead title="Access log" sub="Every time someone views or changes your records." />
+            <ul className="max-h-[420px] divide-y divide-line overflow-y-auto">
+              {log.length === 0 && <li className="p-5 text-sm text-ink-mute">No activity yet.</li>}
+              {log.map((a) => (
+                <li key={a.id} className="flex gap-3 px-5 py-3">
+                  <Eye size={16} className="mt-0.5 shrink-0 text-ink-mute" />
+                  <div><p className="text-sm"><b>{a.actor}</b> <span className="text-ink-mute">({a.role})</span></p><p className="text-[13px] text-ink-soft">{a.action}</p><p className="text-[11px] text-ink-mute">{dateTime(a.at)}</p></div>
                 </li>
               ))}
             </ul>
-            <div className="space-y-3 border-t border-line p-5">
-              {p.issue && <p className="rounded-xl bg-amber-50 px-3 py-2 text-sm text-amber-900">{p.issue}</p>}
-              <MiniSteps steps={rxSteps} current={p.status === "issue" ? "verified" : p.status} />
-              {p.nextRefill && <Button size="sm" variant="secondary" onClick={() => dispatch({ type: "refill", id: p.id })}><Truck size={15} /> Request refill · due {date(p.nextRefill)}</Button>}
+          </Card>
+
+          <Card className="p-5">
+            <p className="font-bold">Your data, your rights</p>
+            <p className="mt-1 text-sm text-ink-soft">Under the Data Protection Act 2019 you can keep a copy of your data and ask for it to be deleted.</p>
+            <div className="mt-4 flex flex-wrap gap-2">
+              <Button variant="secondary" size="sm" onClick={() => downloadRecord(state, id)}><Download size={15} /> Download my record</Button>
+              {mine && <Button variant="ghost" size="sm" onClick={() => setDel(true)}><Trash2 size={15} /> Delete my account</Button>}
+              {state.myPatientId && id === state.myPatientId && <Button variant="ghost" size="sm" onClick={() => { dispatch({ type: "usePatient", id: DEMO }); navigate("/app/patient"); }}>View the demo patient</Button>}
+              {state.myPatientId && id === DEMO && <Button variant="ghost" size="sm" onClick={() => { dispatch({ type: "usePatient", id: state.myPatientId! }); navigate("/app/patient"); }}>Back to my account</Button>}
             </div>
           </Card>
-        ))}
-        {tab === "privacy" && (
-          <div className="grid gap-6 lg:grid-cols-2">
-            <Card>
-              <CardHead title="Who can see my information" sub="Changes take effect immediately and are logged." />
-              <ul className="divide-y divide-line">
-                {state.consents.map((c) => (
-                  <li key={c.party} className="flex items-start gap-3 px-5 py-3.5">
-                    <div className="min-w-0 flex-1">
-                      <p className="flex items-center gap-2 text-sm font-semibold">{c.party} {c.locked && <Lock size={13} className="text-ink-mute" />}</p>
-                      <p className="text-[13px] text-ink-mute">{c.scope}</p>
-                    </div>
-                    <button
-                      role="switch"
-                      aria-checked={c.granted}
-                      aria-label={`Access for ${c.party}`}
-                      disabled={c.locked}
-                      onClick={() => dispatch({ type: "consent", party: c.party })}
-                      className={cx("relative h-6 w-11 shrink-0 rounded-full transition focus-ring disabled:opacity-60", c.granted ? "bg-brand-600" : "bg-slate-300")}
-                    >
-                      <span className={cx("absolute top-0.5 h-5 w-5 rounded-full bg-white shadow transition", c.granted ? "left-[22px]" : "left-0.5")} />
-                    </button>
-                  </li>
-                ))}
-              </ul>
-            </Card>
-            <Card>
-              <CardHead title="Access log" sub="Every time someone views or changes your records." />
-              <ul className="max-h-[480px] divide-y divide-line overflow-y-auto">
-                {myAudit.map((a) => (
-                  <li key={a.id} className="flex gap-3 px-5 py-3">
-                    <Eye size={16} className="mt-0.5 shrink-0 text-ink-mute" />
-                    <div>
-                      <p className="text-sm"><b>{a.actor}</b> <span className="text-ink-mute">({a.role})</span></p>
-                      <p className="text-[13px] text-ink-soft">{a.action}</p>
-                      <p className="text-[11px] text-ink-mute">{dateTime(a.at)}</p>
-                    </div>
-                  </li>
-                ))}
-              </ul>
-            </Card>
-          </div>
-        )}
+        </div>
       </div>
+      <Modal open={del} onClose={() => setDel(false)} title="Delete your account?">
+        <p className="text-sm text-ink-soft">This removes your profile, bookings, prescriptions and record from this device. It cannot be undone. Download your record first if you want a copy.</p>
+        <div className="mt-5 flex justify-end gap-2">
+          <Button variant="ghost" onClick={() => setDel(false)}>Keep my account</Button>
+          <Button variant="danger" onClick={() => { dispatch({ type: "deleteAccount", id }); setDel(false); navigate("/"); toast("Your account was deleted", "info"); }}>Delete everything</Button>
+        </div>
+      </Modal>
     </>
   );
 }
@@ -363,14 +456,25 @@ export function PatientRecords() {
 export function PatientCare() {
   const { state, referrals, appts, labOrders } = useMine();
   const { dispatch } = useStore();
-  const enrolled = pathways.filter((p) => state.enrolledPathways.includes(p.id));
+  const enrolled = pathways.filter((p) => enrolledOf(state).includes(p.id));
   const done = appts.filter((a) => a.status === "completed").length + labOrders.filter((o) => o.status === "result_ready").length;
+  const demo = state.patientId === DEMO;
+  const team = [...new Map(appts.filter((a) => !["cancelled", "declined", "rescheduled"].includes(a.status)).map((a) => [a.specialistId, byId(specialists, a.specialistId)!])).values()];
 
   return (
     <>
       <PageTitle title="My care plan" sub="Your pathway, referrals, care team and support." />
       <div className="grid gap-6 lg:grid-cols-[1.5fr_1fr]">
-        <div className="space-y-6">
+        <div className="min-w-0 space-y-6">
+          {enrolled.length === 0 && (
+            <Card className="p-6">
+              <p className="font-bold">Choose a care pathway</p>
+              <p className="mt-1 text-sm text-ink-soft">A pathway turns a long-term condition into a schedule of reviews, tests and follow-up that we remind you about. Pick the one that fits.</p>
+              <div className="mt-4 flex flex-wrap gap-2">
+                {pathways.map((p) => <button key={p.id} onClick={() => dispatch({ type: "enrol", pathway: p.id })} className="rounded-full border border-line px-3.5 py-2 text-sm font-semibold hover:border-brand-300">{p.short}</button>)}
+              </div>
+            </Card>
+          )}
           {enrolled.map((p) => (
             <Card key={p.id}>
               <CardHead title={p.name} sub={`Led by ${p.lead} · coordinated by Wanjiku (care coordinator)`} />
@@ -381,7 +485,7 @@ export function PatientCare() {
               <ol className="mt-3 divide-y divide-line">
                 {p.steps.map((s, i) => {
                   const Icon = kindIcon[s.kind];
-                  const st = [["Due today", "info"], ["Results processing", "info"], ["Results processing", "info"], ["Due in 4 days", "warn"], ["Booked in 19 days", "ok"], ["Next session Sat", "neutral"]][i] ?? ["Scheduled", "neutral"];
+                  const st = demo ? ([["Due today", "info"], ["Recommended", "info"], ["Recommended", "info"], ["Due in 4 days", "warn"], ["Booked in 19 days", "ok"], ["Next session Sat", "neutral"]][i] ?? ["Scheduled", "neutral"]) : ["Scheduled", "neutral"];
                   return (
                     <li key={s.label} className="flex items-start gap-3 px-5 py-3.5">
                       <span className="grid h-9 w-9 shrink-0 place-items-center rounded-lg" style={{ background: `${p.colour}14`, color: p.colour }}><Icon size={17} /></span>
@@ -399,6 +503,7 @@ export function PatientCare() {
           <Card>
             <CardHead title="Referrals" sub="Tracked from request to completed visit." />
             <ul className="divide-y divide-line">
+              {referrals.length === 0 && <li className="p-5 text-sm text-ink-mute">If one specialist refers you to another, it is tracked here.</li>}
               {referrals.map((r) => {
                 const to = r.toId ? byId(specialists, r.toId) : undefined;
                 const steps = ["sent", "accepted", "booked", "completed"] as const;
@@ -416,20 +521,18 @@ export function PatientCare() {
             </ul>
           </Card>
         </div>
-        <div className="space-y-6">
+        <div className="min-w-0 space-y-6">
           <Card>
             <CardHead title="My care team" />
             <ul className="divide-y divide-line">
-              {["sp-amina", "sp-njeri", "sp-wairimu"].map((id) => {
-                const sp = byId(specialists, id)!;
-                return (
-                  <li key={id} className="flex items-center gap-3 px-5 py-3">
-                    <Avatar name={sp.name} hue={sp.hue} size={36} />
-                    <div className="min-w-0 flex-1"><p className="truncate text-sm font-semibold">{sp.name}</p><p className="text-xs text-ink-mute">{sp.specialty}</p></div>
-                    <Link to={`/specialists/${id}`} aria-label={`View ${sp.name}`}><ChevronRight size={18} className="text-ink-mute" /></Link>
-                  </li>
-                );
-              })}
+              {team.length === 0 && <li className="p-5 text-sm text-ink-mute">The specialists you book appear here.</li>}
+              {team.map((sp) => (
+                <li key={sp.id} className="flex items-center gap-3 px-5 py-3">
+                  <Avatar name={sp.name} hue={sp.hue} size={36} />
+                  <div className="min-w-0 flex-1"><p className="truncate text-sm font-semibold">{sp.name}</p><p className="text-xs text-ink-mute">{sp.specialty}</p></div>
+                  <Link to={`/specialists/${sp.id}`} aria-label={`View ${sp.name}`}><ChevronRight size={18} className="text-ink-mute" /></Link>
+                </li>
+              ))}
               <li className="flex items-center gap-3 px-5 py-3">
                 <Avatar name="Wanjiku Coordinator" hue={30} size={36} />
                 <div className="flex-1"><p className="text-sm font-semibold">Wanjiku N.</p><p className="text-xs text-ink-mute">Care coordinator · calls if anything slips</p></div>
@@ -437,13 +540,13 @@ export function PatientCare() {
             </ul>
           </Card>
           <Card>
-            <CardHead title="Support & learning" sub="From Lupus Warriors Support Network" />
+            <CardHead title="Support and learning" sub="From patient organisations" />
             <ul className="divide-y divide-line">
               {[
-                { icon: Users, t: "Monthly peer session", s: "Last Saturday · Nairobi & online" },
-                { icon: BookOpen, t: "Lupus and your kidneys", s: "5 min read · approved by clinical board" },
-                { icon: HeartHandshake, t: "Living well with fatigue", s: "Video · Kiswahili & English" },
-                { icon: CheckCircle2, t: "Sun protection on a budget", s: "Checklist" },
+                { icon: Users, t: "Monthly peer session", s: "Last Saturday · Nairobi and online" },
+                { icon: BookOpen, t: "Understanding your condition", s: "5 min read · approved by the clinical board" },
+                { icon: HeartHandshake, t: "Living well with a long-term illness", s: "Video · Kiswahili and English" },
+                { icon: CheckCircle2, t: "Questions to ask your doctor", s: "Checklist" },
               ].map((x) => (
                 <li key={x.t} className="flex items-center gap-3 px-5 py-3">
                   <x.icon size={18} className="shrink-0 text-pink-600" />
@@ -451,13 +554,13 @@ export function PatientCare() {
                 </li>
               ))}
             </ul>
-            <p className="border-t border-line px-5 py-3 text-xs text-ink-mute"><Lock size={12} className="mr-1 inline" />The support network sees your membership only, never your medical records.</p>
+            <p className="border-t border-line px-5 py-3 text-xs text-ink-mute"><Lock size={12} className="mr-1 inline" />Patient organisations see your membership only, never your medical records.</p>
           </Card>
           <Card className="p-5">
             <p className="font-bold">Add another pathway</p>
             <div className="mt-3 flex flex-wrap gap-2">
               {pathways.map((p) => (
-                <button key={p.id} onClick={() => dispatch({ type: "enrol", pathway: p.id })} className={cx("rounded-full border px-3 py-1.5 text-sm font-semibold", state.enrolledPathways.includes(p.id) ? "border-brand-500 bg-brand-50 text-brand-800" : "border-line")}>{p.short}</button>
+                <button key={p.id} onClick={() => dispatch({ type: "enrol", pathway: p.id })} className={cx("rounded-full border px-3 py-1.5 text-sm font-semibold", enrolledOf(state).includes(p.id) ? "border-brand-500 bg-brand-50 text-brand-800" : "border-line")}>{p.short}</button>
               ))}
             </div>
           </Card>
@@ -480,7 +583,7 @@ function FeedbackCard() {
         <form className="mt-3 space-y-3" onSubmit={(e) => { e.preventDefault(); dispatch({ type: "feedback", about: "The platform", category: cat, text }); setSent(true); }}>
           <Field label="Topic">
             <select className={inputCls} value={cat} onChange={(e) => setCat(e.target.value)}>
-              {["General feedback", "Late start", "Result delay", "Medicine issue", "Billing or refund"].map((c) => <option key={c}>{c}</option>)}
+              {["General feedback", "Late start", "Booking or video link", "Prescription issue", "Billing or refund"].map((c) => <option key={c}>{c}</option>)}
             </select>
           </Field>
           <textarea required className={inputCls} rows={3} value={text} onChange={(e) => setText(e.target.value)} placeholder="Your message" />
@@ -490,3 +593,4 @@ function FeedbackCard() {
     </Card>
   );
 }
+

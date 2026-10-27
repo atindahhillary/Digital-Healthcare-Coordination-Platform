@@ -1,11 +1,15 @@
-import { AlarmClock, ArrowRightLeft, BadgeCheck, CalendarClock, CheckCircle2, Clock, MapPin, Mic, PhoneOff, RefreshCcw, Undo2, Video, Wallet } from "lucide-react";
+import { AlarmClock, ArrowRightLeft, BadgeCheck, BellRing, CalendarClock, CheckCircle2, Clock, Copy, ExternalLink, Hourglass, Link2, MapPin, Mic, MicOff, PhoneOff, RefreshCcw, Undo2, Video, VideoOff, Wallet, Wifi } from "lucide-react";
 import { useEffect, useState } from "react";
+import { useNavigate } from "react-router-dom";
 import { byId, slotsFor, specialists } from "../data/seed";
 import { cx, date, dateTime, kes, minutesUntil, time } from "../lib/format";
-import { useStore, type Appointment, type ApptStatus } from "../store/store";
+import { roomUrl, useStore, type Appointment, type ApptStatus } from "../store/store";
+import { toast } from "./Toaster";
 import { Avatar, Badge, Button, Modal, type Tone } from "./ui";
 
 export const statusMeta: Record<ApptStatus, { label: string; tone: Tone }> = {
+  requested: { label: "Awaiting doctor", tone: "warn" },
+  declined: { label: "Declined", tone: "neutral" },
   confirmed: { label: "Confirmed", tone: "info" },
   ready: { label: "Doctor ready", tone: "ok" },
   delayed: { label: "Running late", tone: "warn" },
@@ -29,6 +33,7 @@ const steps = ["Booked", "Confirmed", "Reminded", "Doctor ready", "Consultation"
 
 function stepIndex(a: Appointment) {
   switch (a.status) {
+    case "requested": return 0;
     case "confirmed": return minutesUntil(a.at) < 24 * 60 ? 2 : 1;
     case "delayed":
     case "recovery": return 2;
@@ -47,7 +52,7 @@ export function Stepper({ a }: { a: Appointment }) {
       {steps.map((s, i) => (
         <li key={s} className="min-w-0">
           <div className={cx("h-1.5 rounded-full", i <= idx ? "bg-brand-500" : i === idx + 1 && troubled ? (a.status === "recovery" ? "bg-rose-400" : "bg-amber-400") : "bg-line")} />
-          <p className={cx("mt-1.5 truncate text-[10px] font-semibold sm:text-[11px]", i <= idx ? "text-brand-700" : "text-ink-mute")}>{s}</p>
+          <p className={cx("mt-1.5 truncate text-[10px] font-semibold sm:text-[11px]", i <= idx ? "text-brand-700" : "text-ink-mute")}>{i === 0 && a.status === "requested" ? "Requested" : s}</p>
         </li>
       ))}
     </ol>
@@ -68,34 +73,88 @@ export function Timeline({ a }: { a: Appointment }) {
   );
 }
 
-export function VideoRoom({ a, onClose }: { a: Appointment; onClose: () => void }) {
+export function VideoRoom({ a, onClose, asDoctor }: { a: Appointment; onClose: () => void; asDoctor?: boolean }) {
   const sp = byId(specialists, a.specialistId)!;
   const [secs, setSecs] = useState(0);
+  const [muted, setMuted] = useState(false);
+  const [camOff, setCamOff] = useState(false);
+  const [lite, setLite] = useState(false);
   useEffect(() => {
     const t = setInterval(() => setSecs((s) => s + 1), 1000);
     return () => clearInterval(t);
   }, []);
+  const who = asDoctor ? "Patient" : sp.name;
   return (
     <div className="fixed inset-0 z-[60] flex flex-col bg-[#0b1620] text-white">
-      <div className="flex items-center justify-between px-5 py-4">
-        <div>
-          <p className="font-semibold">{sp.name}</p>
+      <div className="flex items-center justify-between gap-3 px-5 py-4">
+        <div className="min-w-0">
+          <p className="truncate font-semibold">{who}</p>
           <p className="text-xs text-white/60">Encrypted video room · {String(Math.floor(secs / 60)).padStart(2, "0")}:{String(secs % 60).padStart(2, "0")}</p>
         </div>
-        <Badge tone="ok">Low-bandwidth mode available</Badge>
+        <button onClick={() => { setLite(!lite); setCamOff(!lite); }} className={cx("inline-flex items-center gap-1.5 rounded-full px-3 py-1.5 text-xs font-semibold ring-1", lite ? "bg-emerald-500/20 text-emerald-200 ring-emerald-400/40" : "bg-white/10 text-white/80 ring-white/20")}>
+          <Wifi size={13} /> {lite ? "Audio only: on" : "Weak signal? Audio only"}
+        </button>
       </div>
       <div className="relative flex flex-1 items-center justify-center">
-        <div className="flex flex-col items-center gap-4">
-          <div className="animate-pulse-soft rounded-full"><Avatar name={sp.name} hue={sp.hue} size={128} /></div>
-          <p className="text-white/70">Demo video room. In production this uses an approved, encrypted video provider.</p>
+        <div className="flex flex-col items-center gap-4 px-6 text-center">
+          <div className={cx("rounded-full", !muted && "animate-pulse-soft")}><Avatar name={asDoctor ? "Patient" : sp.name} hue={sp.hue} size={128} /></div>
+          <p className="text-white/70">{lite ? "Audio only to save data. " : "Demo video room. "}In production this runs on an approved, encrypted video provider.</p>
         </div>
-        <div className="absolute bottom-6 right-6 grid h-36 w-28 place-items-center rounded-2xl bg-white/10 text-sm text-white/60 ring-1 ring-white/15">You</div>
+        <div className="absolute bottom-6 right-6 grid h-36 w-28 place-items-center rounded-2xl bg-white/10 text-sm text-white/60 ring-1 ring-white/15">{camOff ? "Camera off" : "You"}</div>
       </div>
       <div className="flex items-center justify-center gap-4 pb-10 pt-4">
-        <button className="grid h-14 w-14 place-items-center rounded-full bg-white/10 hover:bg-white/20" aria-label="Mute"><Mic /></button>
-        <button className="grid h-14 w-14 place-items-center rounded-full bg-white/10 hover:bg-white/20" aria-label="Camera"><Video /></button>
+        <button onClick={() => setMuted(!muted)} className={cx("grid h-14 w-14 place-items-center rounded-full", muted ? "bg-white text-ink" : "bg-white/10 hover:bg-white/20")} aria-label={muted ? "Unmute" : "Mute"} aria-pressed={muted}>{muted ? <MicOff /> : <Mic />}</button>
+        <button onClick={() => setCamOff(!camOff)} className={cx("grid h-14 w-14 place-items-center rounded-full", camOff ? "bg-white text-ink" : "bg-white/10 hover:bg-white/20")} aria-label={camOff ? "Camera on" : "Camera off"} aria-pressed={camOff}>{camOff ? <VideoOff /> : <Video />}</button>
         <button onClick={onClose} className="grid h-14 w-14 place-items-center rounded-full bg-rose-600 hover:bg-rose-700" aria-label="Leave call"><PhoneOff /></button>
       </div>
+    </div>
+  );
+}
+
+// The link both people receive by SMS and in the app.
+export function VideoLink({ a }: { a: Appointment }) {
+  if (!a.joinCode) return null;
+  const url = roomUrl(a.joinCode);
+  const shown = url.replace(/^https?:\/\//, "");
+  return (
+    <div className="flex flex-wrap items-center gap-2 rounded-xl border border-brand-200 bg-brand-50/60 px-3 py-2.5">
+      <Link2 size={16} className="shrink-0 text-brand-600" />
+      <div className="min-w-0 flex-1">
+        <p className="text-[11px] font-semibold uppercase tracking-wide text-ink-mute">Video link, sent to you and the doctor</p>
+        <p className="truncate font-mono text-[13px] font-semibold text-ink">{shown}</p>
+      </div>
+      <button
+        onClick={() => { navigator.clipboard?.writeText(url).then(() => toast("Link copied", "ok", "copy"), () => toast(shown, "info", "copy")); }}
+        className="inline-flex h-9 items-center gap-1.5 rounded-lg border border-line bg-white px-2.5 text-xs font-semibold text-ink hover:border-brand-300"
+      >
+        <Copy size={14} /> Copy
+      </button>
+      <a href={`/room/${a.joinCode}`} className="inline-flex h-9 items-center gap-1.5 rounded-lg bg-brand-600 px-2.5 text-xs font-semibold text-white hover:bg-brand-700">
+        <ExternalLink size={14} /> Open
+      </a>
+    </div>
+  );
+}
+
+export function Reminders({ a, forDoctor }: { a: Appointment; forDoctor?: boolean }) {
+  if (!a.reminders?.length) return null;
+  const now = Date.now();
+  const sp = byId(specialists, a.specialistId);
+  return (
+    <div className="rounded-xl bg-canvas px-3 py-2.5">
+      <p className="flex items-center gap-1.5 text-xs font-bold uppercase tracking-wide text-ink-mute"><BellRing size={13} /> Reminders · {forDoctor ? "you and the patient" : `you and ${sp?.name ?? "your doctor"}`} · SMS + app</p>
+      <ul className="mt-1.5 space-y-1">
+        {a.reminders.map((r) => {
+          const sent = new Date(r.at).getTime() <= now;
+          return (
+            <li key={r.id} className="flex items-center gap-2 text-[13px]">
+              <span className={cx("grid h-4 w-4 shrink-0 place-items-center rounded-full text-white", sent ? "bg-brand-500" : "border border-line bg-white")}>{sent && <CheckCircle2 size={11} />}</span>
+              <span className={sent ? "text-ink" : "text-ink-soft"}>{r.label}</span>
+              <span className="ml-auto shrink-0 text-xs text-ink-mute">{sent ? "Sent" : dateTime(r.at)}</span>
+            </li>
+          );
+        })}
+      </ul>
     </div>
   );
 }
@@ -110,7 +169,7 @@ export function RescheduleModal({ a, open, onClose, onPick, title = "Pick a new 
     d.setHours(0, 0, 0, 0);
     return d;
   });
-  const taken = state.appointments.filter((x) => x.specialistId === sp.id && ["confirmed", "ready", "delayed"].includes(x.status)).map((x) => x.at);
+  const taken = state.appointments.filter((x) => x.specialistId === sp.id && ["requested", "confirmed", "ready", "delayed"].includes(x.status)).map((x) => x.at);
   const slots = slotsFor(sp, days[day], taken);
   return (
     <Modal open={open} onClose={onClose} title={title}>
@@ -180,8 +239,9 @@ export function AppointmentCard({ a, focus }: { a: Appointment; focus?: boolean 
   const [video, setVideo] = useState(false);
   const [resched, setResched] = useState(false);
   const [showTl, setShowTl] = useState(!!focus);
+  const navigate = useNavigate();
   const mins = minutesUntil(a.at) + (a.delayMin ?? 0);
-  const active = ["confirmed", "ready", "delayed", "recovery", "in_consult"].includes(a.status);
+  const active = ["requested", "confirmed", "ready", "delayed", "recovery", "in_consult"].includes(a.status);
   const meta = statusMeta[a.status];
 
   return (
@@ -198,7 +258,7 @@ export function AppointmentCard({ a, focus }: { a: Appointment; focus?: boolean 
           <div className="mt-2 flex flex-wrap gap-x-4 gap-y-1 text-[13px] text-ink-soft">
             <span className="inline-flex items-center gap-1.5"><CalendarClock size={14} /> {date(a.at)}, {time(a.at)}{a.delayMin ? ` → ${time(new Date(new Date(a.at).getTime() + a.delayMin * 60000))}` : ""}</span>
             <span className="inline-flex items-center gap-1.5">{a.mode === "virtual" ? <Video size={14} /> : <MapPin size={14} />}{a.mode === "virtual" ? "Video consultation" : sp.clinic}</span>
-            <span className="inline-flex items-center gap-1.5"><Wallet size={14} /> {kes(a.fee)} paid</span>
+            <span className="inline-flex items-center gap-1.5"><Wallet size={14} /> {kes(a.fee)} {a.status === "requested" ? "held until confirmed" : "paid"}</span>
           </div>
         </div>
         {active && a.status !== "in_consult" && mins > -30 && (
@@ -213,8 +273,19 @@ export function AppointmentCard({ a, focus }: { a: Appointment; focus?: boolean 
         <div className="space-y-4 border-t border-line px-4 py-4 sm:px-5">
           <Stepper a={a} />
           {a.status === "recovery" && a.recovery && <RecoveryPanel a={a} />}
+          {a.status === "requested" && (
+            <div className="space-y-3 rounded-2xl border border-amber-200 bg-amber-50/70 p-4">
+              <p className="flex items-start gap-2 text-sm font-semibold text-amber-900"><Hourglass size={17} className="mt-0.5 shrink-0" /> Waiting for {sp.name} to confirm. Most answer within 15 minutes. You are not charged until they do.</p>
+              <p className="text-[13px] text-amber-900/80">When they confirm you get {a.mode === "virtual" ? "your video link" : "the visit details"} and reminders by SMS and in the app, and they can open your health file for this visit.</p>
+              <button onClick={() => { dispatch({ type: "viewAsSpecialist", id: a.specialistId }); navigate("/app/specialist"); }} className="inline-flex h-9 items-center gap-1.5 rounded-lg border border-dashed border-amber-400 bg-white px-3 text-xs font-semibold text-amber-900 hover:bg-amber-50">
+                Demo: open {sp.name.replace("Dr. ", "Dr ")}'s side to confirm
+              </button>
+            </div>
+          )}
+          {(a.status === "confirmed" || a.status === "ready" || a.status === "delayed" || a.status === "in_consult") && a.mode === "virtual" && <VideoLink a={a} />}
+          {(a.status === "confirmed" || a.status === "ready" || a.status === "delayed") && <Reminders a={a} />}
           {a.status === "confirmed" && mins <= 75 && (
-            <p className="flex items-center gap-2 rounded-xl bg-sky2-50 px-3 py-2.5 text-sm text-sky2-700"><Clock size={16} /> We are checking that {sp.name.replace("Dr. ", "Dr ")} is ready. You will get an SMS the moment they confirm.</p>
+            <p className="flex items-center gap-2 rounded-xl bg-sky2-50 px-3 py-2.5 text-sm text-sky2-700"><Clock size={16} /> {sp.name.replace("Dr. ", "Dr ")} will confirm they are ready shortly. We will text you and ping the app the moment they do.</p>
           )}
           {a.status === "ready" && (
             <p className="flex items-center gap-2 rounded-xl bg-emerald-50 px-3 py-2.5 text-sm font-medium text-emerald-800"><CheckCircle2 size={16} /> Your doctor has confirmed they are ready{a.mode === "virtual" ? ". Join when it is time." : ". Please check in at reception."}</p>
@@ -229,7 +300,7 @@ export function AppointmentCard({ a, focus }: { a: Appointment; focus?: boolean 
             {a.status !== "recovery" && a.status !== "in_consult" && (
               <>
                 <Button variant="secondary" onClick={() => setResched(true)}><RefreshCcw size={15} /> Reschedule</Button>
-                <Button variant="ghost" onClick={() => dispatch({ type: "cancel", id: a.id })}><Undo2 size={15} /> Cancel</Button>
+                <Button variant="ghost" onClick={() => dispatch({ type: "cancel", id: a.id })}><Undo2 size={15} /> {a.status === "requested" ? "Cancel request" : "Cancel"}</Button>
               </>
             )}
             <Button variant="ghost" onClick={() => setShowTl(!showTl)}>{showTl ? "Hide" : "Show"} activity</Button>

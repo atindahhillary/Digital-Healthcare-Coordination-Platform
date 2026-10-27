@@ -149,12 +149,15 @@ export function Tabs<T extends string>({ value, onChange, items }: { value: T; o
   );
 }
 
-export function Field({ label, children, hint }: { label: string; children: ReactNode; hint?: string }) {
+export function Field({ label, children, hint, error, optional }: { label: string; children: ReactNode; hint?: string; error?: string; optional?: boolean }) {
   return (
     <label className="block">
-      <span className="mb-1.5 block text-sm font-semibold text-ink">{label}</span>
+      <span className="mb-1.5 flex items-baseline justify-between gap-2 text-sm font-semibold text-ink">
+        <span>{label}</span>
+        {optional && <span className="text-xs font-medium text-ink-mute">Optional</span>}
+      </span>
       {children}
-      {hint && <span className="mt-1 block text-xs text-ink-mute">{hint}</span>}
+      {error ? <span role="alert" className="mt-1 block text-xs font-semibold text-rose-600">{error}</span> : hint && <span className="mt-1 block text-xs text-ink-mute">{hint}</span>}
     </label>
   );
 }

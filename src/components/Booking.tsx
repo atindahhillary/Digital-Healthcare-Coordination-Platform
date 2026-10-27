@@ -3,7 +3,7 @@ import { useMemo, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { photoOf, slotsFor, type Mode, type Specialist } from "../data/seed";
 import { cx, date, kes, time } from "../lib/format";
-import { useStore } from "../store/store";
+import { patients, useStore } from "../store/store";
 import { Avatar, Badge, Button, Field, inputCls, Modal } from "./ui";
 
 export function nextSlot(sp: Specialist, taken: string[] = []) {
@@ -80,8 +80,10 @@ export function BookingModal({ sp, open, onClose }: { sp: Specialist; open: bool
     d.setHours(0, 0, 0, 0);
     return d;
   });
-  const taken = state.appointments.filter((x) => x.specialistId === sp.id && ["confirmed", "ready", "delayed"].includes(x.status)).map((x) => x.at);
+  const taken = state.appointments.filter((x) => x.specialistId === sp.id && ["requested", "confirmed", "ready", "delayed"].includes(x.status)).map((x) => x.at);
   const slots = slotsFor(sp, days[day], taken);
+  const who = patients[state.patientId];
+  const demoPatient = state.patientId === "pt-grace";
   const fee = mode === "virtual" ? sp.virtualFee : sp.fee;
 
   const close = () => {
@@ -90,7 +92,12 @@ export function BookingModal({ sp, open, onClose }: { sp: Specialist; open: bool
   };
 
   return (
-    <Modal open={open} onClose={close} title={step === 3 ? "Booked" : `Book ${sp.name}`} wide>
+    <Modal open={open} onClose={close} title={step === 3 ? "Request sent" : `Book ${sp.name}`} wide>
+      {step < 3 && (
+        <p className={cx("mb-4 flex flex-wrap items-center gap-x-2 rounded-xl px-3 py-2 text-[13px]", demoPatient ? "bg-sky2-50 text-sky2-700" : "bg-canvas text-ink-soft")}>
+          Booking as <b>{who.name}</b>{demoPatient && <> (demo patient). <Link to="/register" onClick={close} className="font-semibold underline">Create your own account</Link></>}
+        </p>
+      )}
       {step === 1 && (
         <div className="space-y-5">
           <div className="flex items-center gap-3">
@@ -141,7 +148,7 @@ export function BookingModal({ sp, open, onClose }: { sp: Specialist; open: bool
             <input className={inputCls} value={reason} onChange={(e) => setReason(e.target.value)} placeholder="e.g. Lupus follow-up, new joint pain" />
           </Field>
           <div className="flex flex-col-reverse gap-3 border-t border-line pt-4 sm:flex-row sm:items-center sm:justify-between">
-            <p className="text-sm text-ink-mute">Free cancellation up to {state.rules.freeCancelHours} h before. If the doctor is late, you choose what happens.</p>
+            <p className="text-sm text-ink-mute">The doctor confirms your request, then you both get the {mode === "virtual" ? "video link" : "details"} and reminders. Free cancellation up to {state.rules.freeCancelHours} h before.</p>
             <Button disabled={!slot} onClick={() => setStep(2)}>Continue</Button>
           </div>
         </div>
@@ -158,6 +165,7 @@ export function BookingModal({ sp, open, onClose }: { sp: Specialist; open: bool
               <dt className="border-t border-line pt-2 font-bold">Total</dt><dd className="border-t border-line pt-2 text-right text-lg font-bold">{kes(fee)}</dd>
             </dl>
           </div>
+          <p className="rounded-xl bg-amber-50 px-3 py-2.5 text-[13px] text-amber-900">Your payment is held until {sp.name.split(" ")[0] + " " + sp.name.split(" ")[1]} confirms. If they cannot take the slot, you are refunded in full.</p>
           <div className="grid gap-2 sm:grid-cols-2">
             <div className="flex items-center gap-3 rounded-xl border-2 border-brand-500 bg-brand-50 p-3.5">
               <Smartphone size={20} className="text-brand-700" />
@@ -170,23 +178,23 @@ export function BookingModal({ sp, open, onClose }: { sp: Specialist; open: bool
           </div>
           <div className="flex justify-between gap-3 border-t border-line pt-4">
             <Button variant="ghost" onClick={() => setStep(1)}>Back</Button>
-            <Button onClick={() => { dispatch({ type: "book", specialistId: sp.id, at: slot, mode, reason }); setStep(3); }}>Pay {kes(fee)} and confirm</Button>
+            <Button onClick={() => { dispatch({ type: "book", specialistId: sp.id, at: slot, mode, reason }); setStep(3); }}>Pay {kes(fee)} and send request</Button>
           </div>
         </div>
       )}
       {step === 3 && slot && (
         <div className="py-4 text-center">
           <span className="mx-auto grid h-16 w-16 place-items-center rounded-full bg-emerald-50 text-emerald-600"><CheckCircle2 size={34} /></span>
-          <p className="mt-4 text-xl font-bold">You are booked with {sp.name}</p>
-          <p className="mt-1 text-ink-mute">{date(slot)} at {time(slot)}. Confirmation sent by SMS.</p>
+          <p className="mt-4 text-xl font-bold">Request sent to {sp.name}</p>
+          <p className="mt-1 text-ink-mute">{date(slot)} at {time(slot)}. We told you by SMS and in the app.</p>
           <ul className="mx-auto mt-6 max-w-sm space-y-2 text-left text-sm">
-            <li className="flex gap-2"><Clock size={16} className="mt-0.5 shrink-0 text-brand-600" /> Reminders {state.rules.reminderHours.map((h) => `${h} h`).join(" and ")} before.</li>
-            <li className="flex gap-2"><BadgeCheck size={16} className="mt-0.5 shrink-0 text-brand-600" /> The doctor confirms readiness up to {state.rules.readinessWindowMin} min before. We tell you when they are ready.</li>
-            <li className="flex gap-2"><Languages size={16} className="mt-0.5 shrink-0 text-brand-600" /> If they run late, you choose: wait, another doctor, a new time or a refund.</li>
+            <li className="flex gap-2"><Clock size={16} className="mt-0.5 shrink-0 text-brand-600" /> The doctor usually confirms within 15 minutes.</li>
+            <li className="flex gap-2"><BadgeCheck size={16} className="mt-0.5 shrink-0 text-brand-600" /> Then you both get the {mode === "virtual" ? "video link" : "visit details"} and reminders at 24 h, 2 h and 15 min before, by SMS and in the app.</li>
+            <li className="flex gap-2"><Languages size={16} className="mt-0.5 shrink-0 text-brand-600" /> They can open your health file for this visit. You can withdraw access any time.</li>
           </ul>
           <div className="mt-6 flex justify-center gap-2">
             <Button variant="secondary" onClick={close}>Done</Button>
-            <Button onClick={() => { close(); navigate("/app/patient/appointments"); }}>View in my portal</Button>
+            <Button onClick={() => { close(); navigate("/app/patient"); }}>Track it in my portal</Button>
           </div>
         </div>
       )}

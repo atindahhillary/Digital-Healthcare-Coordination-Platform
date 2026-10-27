@@ -11,8 +11,8 @@ export default defineConfig({
       registerType: "autoUpdate",
       includeAssets: ["favicon.svg"],
       manifest: {
-        name: "Unganisha Care",
-        short_name: "Unganisha",
+        name: "AfyaConnect",
+        short_name: "AfyaConnect",
         description: "Coordinated chronic care for Kenya: specialists, labs, pharmacies and support, connected around the patient.",
         theme_color: "#0A7F73",
         background_color: "#ffffff",

@@ -1,4 +1,4 @@
-import { Boxes, Briefcase, CircleDollarSign, Cpu, Gavel, HeartPulse, Layers, Palette, Route, Target, TriangleAlert, Users } from "lucide-react";
+import { Database, Boxes, Briefcase, CircleDollarSign, Cpu, Gavel, HeartPulse, Layers, Palette, Route, Target, TriangleAlert, Users } from "lucide-react";
 import { Badge, Card } from "../../components/ui";
 
 const council = [
@@ -26,6 +26,7 @@ const council = [
       "Register with the ODPC and complete a DPIA before handling real patient data.",
       "Map to the Digital Health Act 2023 and its 2025 regulations; plan for Digital Health Agency registration and national exchange standards.",
       "Confirm data residency for health records with counsel before choosing a hosting region.",
+      "KYC: collect only what care needs, keep ID numbers masked, verify through an authorised provider, and record a guardian for under-18s.",
       "Virtual consultations run through KMPDC-approved facilities; pharmacy fulfilment stays with PPB-licensed premises.",
     ],
   },
@@ -45,6 +46,7 @@ const council = [
       "Status is always visible: a patient should never wonder whether their doctor is coming.",
       "WCAG 2.2 AA contrast and touch targets; works with screen readers and large text.",
       "Prototype with 8 to 10 patients and 5 providers before the MVP specification is frozen.",
+      "Build one aspect and make it perfect: patient and specialist first. Labs and pharmacies stay switched off until it is.",
     ],
   },
   {
@@ -59,10 +61,11 @@ const council = [
 ];
 
 const phases = [
-  { p: "Phase 0", t: "Discovery", w: "Weeks 1 to 4", items: ["Requirements workshop", "Clickable prototype (this site)", "Legal & clinical operating model", "MVP specification and budget"] },
-  { p: "Phase 1", t: "MVP launch", w: "Weeks 5 to 20", items: ["Public website and provider directory", "Patient registration and secure accounts", "Provider onboarding and verification", "Booking, reminders, readiness and delay management", "Patient and admin dashboards", "Referral and follow-up tracking", "Feedback and reporting"] },
-  { p: "Phase 2", t: "Connected care", w: "Months 6 to 9", items: ["Laboratory integration and home collection", "Pharmacy fulfilment and refills", "M-Pesa payments and refunds", "Care pathways engine", "Patient organisation portal"] },
-  { p: "Phase 3", t: "Network scale", w: "Months 10 to 18", items: ["Secure record exchange with national standards", "SHA and insurer claims", "USSD access", "Advanced care management and analytics", "New counties and conditions"] },
+  { p: "Phase 0", t: "Discovery", w: "Done", items: ["Requirements workshop", "Clickable prototype (this site)", "Legal and clinical operating model", "MVP specification and budget"] },
+  { p: "Phase 1", t: "Patient and specialist, made solid", w: "Weeks 5 to 16", items: ["Registration with ID check (KYC) and consent", "Booking requests the specialist confirms", "Video link and reminders to both, by SMS and app", "Health record: visits, notes, prescriptions", "Specialist file access only after a confirmed booking", "Prescription reminders until the patient picks a pharmacy", "Secure database and the first real users"] },
+  { p: "Phase 2", t: "Laboratories", w: "Months 5 to 7", items: ["Orders straight from the specialist", "Home sample collection and tracking", "Secure result release to patient and doctor", "Agreed price list"] },
+  { p: "Phase 3", t: "Pharmacies", w: "Months 8 to 10", items: ["Prescription goes to the patient's chosen pharmacy", "Pharmacist verification, stock and price", "Delivery or collection, and refills", "M-Pesa payments and refunds"] },
+  { p: "Phase 4", t: "Whole hospital system", w: "Month 11 onward", items: ["Secure record exchange with national standards", "SHA and insurer claims", "USSD access", "Advanced care management and analytics", "New counties and conditions"] },
 ];
 
 const costs = [
@@ -131,7 +134,7 @@ export default function Blueprint() {
 
       <section className="container-x mt-12">
         <h2 className="flex items-center gap-2 text-2xl font-extrabold tracking-tight"><Route className="text-brand-600" /> Phased roadmap</h2>
-        <div className="mt-5 grid gap-4 md:grid-cols-2 lg:grid-cols-4">
+        <div className="mt-5 grid gap-4 md:grid-cols-2 lg:grid-cols-5">
           {phases.map((p, i) => (
             <Card key={p.p} className={i === 1 ? "p-6 ring-2 ring-brand-500" : "p-6"}>
               <div className="flex items-center justify-between">
@@ -144,6 +147,30 @@ export default function Blueprint() {
               </ul>
             </Card>
           ))}
+        </div>
+      </section>
+
+      <section className="container-x mt-12">
+        <h2 className="flex items-center gap-2 text-2xl font-extrabold tracking-tight"><Database className="text-brand-600" /> Patient data, in order</h2>
+        <p className="mt-2 max-w-3xl text-ink-soft">The data system is the backbone. Every record belongs to the patient, and access follows the booking.</p>
+        <div className="mt-5 grid gap-4 md:grid-cols-3">
+          <Card className="p-6">
+            <p className="font-bold">What we hold</p>
+            <ul className="mt-3 space-y-1.5 text-sm text-ink-soft">
+              {["Identity and ID check (KYC)", "Health basics: conditions, allergies, medicines, blood group", "Visits with the doctor's summary", "Prescriptions with codes and status", "Tests recommended and results", "Consents and the access log"].map((x) => <li key={x}>• {x}</li>)}
+            </ul>
+          </Card>
+          <Card className="p-6">
+            <p className="font-bold">Collected with care</p>
+            <ul className="mt-3 space-y-1.5 text-sm text-ink-soft">
+              {["Only what care needs; ID numbers kept masked", "ID checked through an authorised provider, not stored in the open", "Under 18: a guardian is recorded", "Right to download and to delete, built in", "Consent captured with a version and a date"].map((x) => <li key={x}>• {x}</li>)}
+            </ul>
+          </Card>
+          <Card className="p-6">
+            <p className="font-bold">The access rule</p>
+            <p className="mt-3 text-sm text-ink-soft">A specialist can open a patient's file only if <b className="text-ink">a booking with them is confirmed</b> and the patient has not withdrawn access. Access lapses 90 days after a completed visit. Every open is written to the patient's access log.</p>
+            <p className="mt-3 text-sm text-ink-soft">In the production database this is enforced by row-level security, not by the screen.</p>
+          </Card>
         </div>
       </section>
 
@@ -178,14 +205,16 @@ export default function Blueprint() {
         <h2 className="flex items-center gap-2 text-2xl font-extrabold tracking-tight"><Boxes className="text-brand-600" /> What this prototype covers</h2>
         <Card className="mt-5 grid gap-x-8 gap-y-2 p-6 text-sm sm:grid-cols-2">
           {[
-            "Public site, provider directory with punctuality, booking flow",
-            "Patient portal: appointments, live status, recovery choices, results, refills, referrals, consent",
-            "Specialist portal: readiness check, delay reporting, notes, lab orders, e-prescriptions",
-            "Laboratory portal: order queue, collection, processing, secure result release",
-            "Pharmacy portal: verification, stock and price confirmation, delivery, refills",
+            "Patient registration with ID check (KYC), phone code and consent",
+            "Booking as a request: the specialist confirms, then the video link and reminders go to both",
+            "Pre-join video lobby and room, reminders by SMS and in the app",
+            "Health record: visits, summaries, prescriptions, tests recommended, access log",
+            "Specialist portal: requests, readiness check, delays, patient file after confirmation, summaries and prescriptions",
+            "Prescription code, reminders until a pharmacy is chosen, print or save as PDF",
+            "Profile and privacy: consent toggles, download my record, delete my account",
+            "Admin: KPIs, incidents, provider and patient ID verification, service rules, audit log, complaints",
             "Patient organisation portal with a visible no-records boundary",
-            "Admin: KPIs, incidents, verification queue, service rules, audit log, complaints",
-            "Shared demo state: an action in one portal appears in the others",
+            "Laboratory and pharmacy portals are built but switched off until the patient and specialist journey is perfected",
           ].map((x) => <p key={x} className="flex gap-2"><span className="text-brand-600">✓</span>{x}</p>)}
         </Card>
       </section>

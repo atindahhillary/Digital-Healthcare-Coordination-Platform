@@ -3,6 +3,9 @@ import { useState } from "react";
 import { Button, Card, Field, inputCls } from "../../components/ui";
 
 const faqs = [
+  ["What do I need to register?", "A Kenyan mobile number, your ID (national ID, passport, alien ID or birth certificate for under 18s) and a few health basics. It takes about 3 minutes. We can also register you over the phone."],
+  ["When can my doctor see my records?", "Only after they confirm a booking with you. You can switch a doctor's access off any time in your profile, and every time your file is opened is shown in your access log."],
+  ["I got a prescription. Now what?", "You get a code. Choose the pharmacy you prefer, and show the code or a printed copy at the counter. We keep reminding you until you have done it. Direct hand-off to pharmacies comes in a later phase."],
   ["What if my doctor is late?", "If the delay is short we tell you the new start time. If it passes 20 minutes, or the doctor does not confirm, you choose: wait, see another verified specialist, reschedule for free, or get a full refund."],
   ["Is this for emergencies?", "No. For an emergency call 999 or 112, or go to the nearest emergency unit."],
   ["Who can see my results?", "You and the doctor who ordered the test. Anyone else needs your consent, which you can change at any time in Records & privacy."],
