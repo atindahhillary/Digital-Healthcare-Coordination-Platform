@@ -4,9 +4,9 @@ import { useEffect, useRef, useState } from "react";
 // A short vertical explainer with Dr. Afya. It is a plain MP4, so it plays everywhere and costs no JavaScript.
 // Kind to slow connections: a lighter file on 3G or data saver, no autoplay on 2G or data saver,
 // and a plain-text fallback if the video cannot load.
-const SRC = { full: "/video/afyaconnect-explainer-v1-720.mp4", light: "/video/afyaconnect-explainer-v1-480.mp4" };
+const SRC = { full: "/video/afyaconnect-explainer-v2-720.mp4", light: "/video/afyaconnect-explainer-v2-480.mp4" };
 const POSTER = "/img/explainer-poster-v1.webp";
-const CAPTIONS = "/video/afyaconnect-explainer-v1.vtt";
+const CAPTIONS = "/video/afyaconnect-explainer-v2.vtt";
 
 const STEPS = [
   "Register with your phone number and ID.",
