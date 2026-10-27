@@ -60,10 +60,17 @@ export default function ExplainerVideo() {
   };
   // Once it has played smoothly, ask for the same file again with the full-file request the service worker
   // can store, so the installed app can replay it offline. It is already in the browser cache, so this costs no data.
-  const keepForOffline = () => {
-    if (cached.current || !navigator.onLine || onSlowLink()) return;
+  // On a first visit the worker is still starting when the video becomes playable, so wait until it controls the page.
+  const keepForOffline = async () => {
+    if (cached.current || !navigator.onLine || onSlowLink() || !("serviceWorker" in navigator)) return;
     cached.current = true;
-    fetch(src, { cache: "force-cache" }).catch(() => undefined);
+    try {
+      await navigator.serviceWorker.ready;
+      if (!navigator.serviceWorker.controller) await new Promise((done) => navigator.serviceWorker.addEventListener("controllerchange", done, { once: true }));
+      await fetch(src, { cache: "force-cache" });
+    } catch {
+      cached.current = false;
+    }
   };
 
   return (
@@ -84,7 +91,7 @@ export default function ExplainerVideo() {
             onPlay={() => setPlaying(true)}
             onPause={() => setPlaying(false)}
             onTimeUpdate={(e) => setProgress(e.currentTarget.currentTime / (e.currentTarget.duration || 1))}
-            onCanPlayThrough={keepForOffline}
+            onCanPlayThrough={() => void keepForOffline()}
             onError={() => setFailed(true)}
           >
             <track kind="captions" srcLang="en" label="English" src={CAPTIONS} />
