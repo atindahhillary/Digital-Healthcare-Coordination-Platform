@@ -58,11 +58,11 @@ export default function ExplainerVideo() {
     setMuted(v.muted);
     if (!v.muted && v.paused) { pausedByViewer.current = false; void v.play().catch(() => undefined); }
   };
-  // Once it has played smoothly, ask for the same file again with the full-file request the service worker
+  // Once it has played smoothly (and the link is not on 2G or data saver), ask for the same file again with the full-file request the service worker
   // can store, so the installed app can replay it offline. It is already in the browser cache, so this costs no data.
   // On a first visit the worker is still starting when the video becomes playable, so wait until it controls the page.
   const keepForOffline = async () => {
-    if (cached.current || !navigator.onLine || onSlowLink() || !("serviceWorker" in navigator)) return;
+    if (cached.current || !navigator.onLine || tooSlowToAutoplay() || !("serviceWorker" in navigator)) return;
     cached.current = true;
     try {
       await navigator.serviceWorker.ready;
