@@ -1,6 +1,7 @@
 import { createContext, useCallback, useContext, useEffect, useMemo, useReducer, useRef, type ReactNode } from "react";
 import { toast } from "../components/Toaster";
 import { byId, labs, pharmacies, specialists, slotsFor, type Mode, type Specialist } from "../data/seed";
+import { capture, eraseCaptured } from "../lib/capture";
 import { FEATURES } from "../lib/features";
 
 export type Role = "patient" | "specialist" | "lab" | "pharmacy" | "org" | "admin";
@@ -1130,7 +1131,7 @@ function feedback(a: Action, s: State): [string, "ok" | "warn" | "info", string?
     case "profileUpdate": return ["Saved", "ok", "profile"];
     case "usePatient": return [a.id === DEMO_PATIENT ? "Showing the demo patient" : "Showing your own account", "info", "usepatient"];
     case "viewAsSpecialist": return [`Viewing as ${byId(specialists, a.id)?.name ?? "specialist"}`, "info", "viewas"];
-    case "deleteAccount": return ["Your account and records were deleted from this device", "info"];
+    case "deleteAccount": return ["Your account and records were deleted from this device and from our database", "info"];
     case "reset": return ["Demo data reset", "info"];
     default: return undefined;
   }
@@ -1149,6 +1150,13 @@ export function StoreProvider({ children }: { children: ReactNode }) {
   rulesRef.current = state;
   const dispatch = useCallback((a: Action) => {
     rawDispatch(a);
+    // Save what happened to the database. Deleting an account erases what was saved instead.
+    const before = rulesRef.current;
+    if (a.type === "deleteAccount") eraseCaptured();
+    else {
+      const pid = a.type === "register" ? a.id : before.patientId;
+      capture(a, { role: before.role, patientId: pid, demo: pid === DEMO_PATIENT });
+    }
     const f = feedback(a, rulesRef.current);
     if (f) toast(navigator.onLine ? f[0] : `${f[0]}. Saved on this device while offline`, f[1], f[2]);
   }, []);
