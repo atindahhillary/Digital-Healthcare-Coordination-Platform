@@ -11,6 +11,7 @@ import Blueprint from "./pages/public/Blueprint";
 import Contact from "./pages/public/Contact";
 import FindCare from "./pages/public/FindCare";
 import Home from "./pages/public/Home";
+import HowItWorks from "./pages/public/HowItWorks";
 import Partners from "./pages/public/Partners";
 import Pathways from "./pages/public/Pathways";
 import ProviderProfile from "./pages/public/ProviderProfile";
@@ -69,8 +70,9 @@ export default function App() {
       {!focus && <InstallBanner />}
       <Suspense fallback={<div className="grid min-h-[50vh] place-items-center text-sm text-ink-mute">Loading…</div>}>
         <Routes>
+          <Route index element={<Home />} />
           <Route element={<PublicLayout />}>
-            <Route index element={<Home />} />
+            <Route path="how-it-works" element={<HowItWorks />} />
             <Route path="find-care" element={<FindCare />} />
             <Route path="specialists/:id" element={<ProviderProfile />} />
             <Route path="care-pathways" element={<Pathways />} />

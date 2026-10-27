@@ -282,3 +282,9 @@ window.frame = (t) => {
   for (const a of anims) a.currentTime = t * 1000;
   characterFrame(t, gazeAt(t));
 };
+
+// explainer.html?hero shows only the character on a transparent page, for the landing page picture (see hero-art.cjs)
+if (/[?&]hero\b/.test(location.search)) {
+  for (const id of ["bg", "ui", "hud"]) document.getElementById(id).style.display = "none";
+  for (const e of [document.documentElement, document.body, document.getElementById("stage")]) e.style.background = "transparent";
+}

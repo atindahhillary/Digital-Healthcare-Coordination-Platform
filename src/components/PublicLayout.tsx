@@ -20,7 +20,8 @@ export function Logo({ light }: { light?: boolean }) {
   );
 }
 
-const nav = [
+export const nav = [
+  { to: "/how-it-works", label: "How it works" },
   { to: "/find-care", label: "Find care" },
   { to: "/care-pathways", label: "Care pathways" },
   { to: "/partners", label: "For providers" },
