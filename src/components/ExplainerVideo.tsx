@@ -26,8 +26,24 @@ export default function ExplainerVideo() {
   const frame = useRef<HTMLDivElement>(null);
   const pausedByViewer = useRef(false);
   const cached = useRef(false);
-  const [src] = useState(() => (onSlowLink() ? SRC.light : SRC.full));
-  const [autoplay] = useState(() => !tooSlowToAutoplay() && !window.matchMedia?.("(prefers-reduced-motion: reduce)").matches);
+  const reducedMotion = () => !!window.matchMedia?.("(prefers-reduced-motion: reduce)").matches;
+  // The file is chosen once we have looked at what is already on this device (below), so `src` starts empty.
+  const [src, setSrc] = useState<string>();
+  const [autoplay, setAutoplay] = useState(() => !tooSlowToAutoplay() && !reducedMotion());
+
+  // Prefer a copy already stored on this device, whatever the connection says now: it costs no data, and it is the only
+  // thing that works offline (the connection type can read differently from one visit to the next).
+  useEffect(() => {
+    let alive = true;
+    (async () => {
+      const full = "caches" in window ? await caches.match(SRC.full) : undefined;
+      const light = full || !("caches" in window) ? undefined : await caches.match(SRC.light);
+      if (!alive) return;
+      if (full || light) { setSrc(full ? SRC.full : SRC.light); if (!reducedMotion()) setAutoplay(true); }
+      else setSrc(onSlowLink() ? SRC.light : SRC.full);
+    })().catch(() => alive && setSrc(onSlowLink() ? SRC.light : SRC.full));
+    return () => { alive = false; };
+  }, []);
   const [playing, setPlaying] = useState(false);
   const [muted, setMuted] = useState(true);
   const [failed, setFailed] = useState(false);
@@ -62,7 +78,7 @@ export default function ExplainerVideo() {
   // can store, so the installed app can replay it offline. It is already in the browser cache, so this costs no data.
   // On a first visit the worker is still starting when the video becomes playable, so wait until it controls the page.
   const keepForOffline = async () => {
-    if (cached.current || !navigator.onLine || tooSlowToAutoplay() || !("serviceWorker" in navigator)) return;
+    if (!src || cached.current || !navigator.onLine || tooSlowToAutoplay() || !("serviceWorker" in navigator)) return;
     cached.current = true;
     try {
       await navigator.serviceWorker.ready;
