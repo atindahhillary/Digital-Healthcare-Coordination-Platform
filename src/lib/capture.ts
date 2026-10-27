@@ -4,8 +4,8 @@ import { FEATURES } from "./features";
 // Fire and forget: the app never waits for this and never breaks because of it. Offline, actions queue on the
 // device and go out when the connection returns. Deleting an account also deletes what was captured.
 // The key below is a publishable key: it can only call the two capture functions (see supabase/migrations/..0300_capture.sql).
-const URL = "";
-const KEY = "";
+const URL = "https://mmlekyvogfktjjsemfep.supabase.co";
+const KEY = "sb_publishable_GsH4qEKnrAVBWB8yj2ySLg_KTJR1BS8";
 const VERSION = "1";
 
 const ID_KEY = "afyaconnect-client";

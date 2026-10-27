@@ -1,5 +1,5 @@
 -- AfyaConnect core schema (phase 1: patient and specialist).
--- Draft for review. Not applied to any database yet.
+-- Applied to the Supabase project afyaconnect (mmlekyvogfktjjsemfep, eu-central-1) on 2026-10-27.
 --
 -- Principles
 --   1. Every table has row level security ON. Nothing is readable by default.

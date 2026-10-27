@@ -1,5 +1,5 @@
 -- AfyaConnect access rules, enforced in the database.
--- Draft for review. Not applied to any database yet.
+-- Applied to the Supabase project afyaconnect (mmlekyvogfktjjsemfep, eu-central-1) on 2026-10-27.
 --
 -- Shape of the security model:
 --   * RLS is ON for every table. Policies below only ever allow SELECT.

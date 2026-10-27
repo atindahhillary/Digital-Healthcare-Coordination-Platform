@@ -206,7 +206,7 @@ export default function Register() {
         <div className="mx-auto max-w-lg rounded-3xl border border-line bg-white p-6 text-center shadow-card sm:p-8">
           <span className="mx-auto grid h-14 w-14 place-items-center rounded-full bg-brand-50 text-brand-700"><BadgeCheck size={28} /></span>
           <h1 className="mt-4 text-2xl font-extrabold tracking-tight">You are already registered</h1>
-          <p className="mt-2 text-ink-soft">{mine.name} · ID check: {mine.kyc?.status === "verified" ? "verified" : "in review"}. Your account lives on this device.</p>
+          <p className="mt-2 text-ink-soft">{mine.name} · ID check: {mine.kyc?.status === "verified" ? "verified" : "in review"}. Your account works on this device, and what you do is also saved to our secure database.</p>
           <div className="mt-6 flex flex-col gap-2 sm:flex-row sm:justify-center">
             <Button size="lg" onClick={() => { dispatch({ type: "usePatient", id: state.myPatientId! }); navigate("/app/patient"); }}>Open my dashboard <ArrowRight size={18} /></Button>
             <Button size="lg" variant="secondary" onClick={() => setAgain(true)}>Register another person</Button>
@@ -267,7 +267,7 @@ export default function Register() {
         <div className="pb-28 sm:pb-0">
           <div className="mb-5 flex items-start gap-3 rounded-2xl border border-sky2-100 bg-sky2-50 p-3.5 text-[13px] leading-snug text-sky2-700">
             <Info size={17} className="mt-0.5 shrink-0" />
-            <p><b>Preview mode.</b> Your details are saved only on this device while the secure national-standard database is being finished. Please use test details for now. No SMS is really sent.</p>
+            <p><b>Preview mode.</b> Your details are saved on this device and in our secure database (hosted in Germany, not yet in Kenya). Deleting your account in your profile erases both. Please use test details for now. No SMS is really sent.</p>
           </div>
 
           <div className="rounded-3xl border border-line bg-white p-5 shadow-card sm:p-8">

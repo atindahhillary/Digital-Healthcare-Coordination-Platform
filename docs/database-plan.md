@@ -1,7 +1,9 @@
 # AfyaConnect: real database plan
 
-Status: planned and tested locally. Nothing has been created on Supabase or anywhere else.
-Date: 2026-10-27
+Status (2026-10-27): phase 1 is live. The project `afyaconnect` (id `mmlekyvogfktjjsemfep`, Frankfurt `eu-central-1`,
+Supabase Free plan, $0) has the schema, the access rules and the capture table applied, 10 fictional doctors, and the
+app sends everything it does to it. The 28 access-rule checks pass on the real database, and the security advisor shows
+only the expected warnings (see section 3b).
 
 ## 1. What this is
 
@@ -65,13 +67,20 @@ Free plan). Everything else is labelled as published or estimated, and should be
 | Data Protection: ODPC registration, impact assessment, counsel | before real patients | fees set by the regulator and a lawyer's quote | not estimated |
 
 Free plan limits that matter (published): projects pause after about a week without activity, there are no
-backups, and each account can have only two active free projects. **You already have two active
-(`inua-toto-foundation` and `amora`), and Supabase refused a third on 2026-10-27** with: "maximum limits for the number
-of active free projects ... (2 project limit)". The limit is per person across all organisations, so a new organisation
-does not get around it (an earlier version of this plan said it would; that was wrong). I will not pause, delete or touch
-those projects. The ways forward are: upgrade one organisation to Pro (about $25 a month, which lifts the limit),
-or you pause one of the two projects yourself, or the AfyaConnect schema shares an existing project (not advised:
-it mixes this app's patient data with another app's).
+backups, and each account can have only two active free projects. Supabase refused a third project on 2026-10-27
+("2 project limit"; it is per person across all organisations, so a new organisation would not have helped). With the
+owner's approval, `inua-toto-foundation` was paused (it can be restored from the dashboard or with `restore_project`)
+to make room, and `afyaconnect` was created in its place. **Because the Free plan has no backups and pauses after a week
+without activity, this is fine for the prototype but not for real patients: move to Pro (about $25 a month, which also
+adds daily backups and removes the project limit) before launch.**
+
+### 3b. Security advisor on the real project
+
+- `app_events` has RLS on and no policies: intended, nobody reads it through the API.
+- Two functions callable by visitors (`capture_event`, `erase_capture`) and 15 callable by signed-in users: intended,
+  the whole write model is `SECURITY DEFINER` functions that check who is calling inside. Each one is covered by a test.
+- One real finding, fixed: the audit-log trigger function had no pinned `search_path`
+  (`supabase/migrations/20261028000400_trigger_search_path.sql`).
 
 ## 4. The Kenyan data rule (the real decision)
 
@@ -92,8 +101,8 @@ patient data goes anywhere.
 | Phase | Work | Needs from you |
 |---|---|---|
 | 0 (done) | Schema, rules, capture table, 98 passing checks | nothing |
-| 0b (done) | App side of capture: every action is queued on the device and sent to `capture_event()`; deleting an account erases it. Switched off until the project exists (no keys in `src/lib/capture.ts`) | nothing |
-| 1 | Create the project, apply the three migrations, rerun the checks there, run the security advisor, seed 6 synthetic doctors, put the URL and publishable key into `src/lib/capture.ts` | **a free project slot or Pro upgrade (see section 3)** |
+| 0b (done) | App side of capture: every action is queued on the device and sent to `capture_event()`; deleting an account erases it | nothing |
+| 1 (done) | Project created, migrations applied, rules checked on the real database, advisor run, 10 fictional doctors seeded, URL and publishable key in `src/lib/capture.ts` | nothing |
 | 2 | Replace the browser-only store with a data layer that calls the functions. Keep demo mode behind a switch so the current live demo keeps working | nothing |
 | 3 | Real sign-in with phone code; scheduler (pg_cron) plus a function that sends due reminders; live updates for the notification bell | an Africa's Talking account (test mode first) |
 | 4 | Private storage bucket for ID and selfie images with owner-only access; admin review through short-lived links | nothing |
@@ -101,16 +110,19 @@ patient data goes anywhere.
 
 ## 6. Decisions I need from you
 
-1. How to free a project slot: upgrade an organisation to Pro (about $25 a month), or pause one of your two active
-   free projects yourself, or share a project (not advised). Creation was refused on 2026-10-27 for this reason.
-2. Whether phase 1 stays on synthetic data only until the hosting question is settled. I recommend yes.
+1. Whether to keep `inua-toto-foundation` paused or upgrade to Pro (about $25 a month) so both can run.
+2. Whether the capture stays on synthetic and test data only until the hosting question is settled. I recommend yes:
+   the app now saves what people enter (name, age, county, masked phone, conditions) in Germany, and the registration
+   screen says so.
 3. Who owns the Africa's Talking account for SMS (sender names are registered to the account holder).
 4. Retention: how long do we keep a patient's record after they stop using the service?
 
 ## 7. Not done yet
 
-- Nothing has been created on Supabase, and nothing has been bought. The create call was refused by the free-plan limit.
-- The migrations, tests and the app's capture code are committed. The capture code does nothing until the project's
-  URL and publishable key are added.
+- Nothing has been bought. The patient and specialist screens still run on the browser-only store; the database
+  receives a copy of every action (phase 0b) but is not yet the source of truth. That is phase 2.
+- Real sign-in (phone code) is not set up, so the strict patient, specialist and booking functions are tested and in
+  place but not used by the app yet. Captured data is tied to a random browser id, not to a login.
+- The Free plan has no backups. Do not rely on this database for anything you cannot lose.
 - The storage policies, scheduler and SMS hook are described above but not written, because they cannot be
   tested without a real project.
