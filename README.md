@@ -63,6 +63,14 @@ npm run build
 
 Deployed on Vercel as a static SPA (`vercel.json` adds SPA rewrites and security headers).
 
+## Explainer video
+
+The landing page opens with a short vertical video of Dr. Afya, the platform guide, showing the five steps and where to find things in the app. It is built from code in `video/` (script, animated scenes, narration timeline, renderer), see `video/README.md`. The MP4s live in `public/video/` with versioned names; the app caches them once watched so the installed app can replay them offline.
+
+## Updates on installed apps
+
+The service worker takes over as soon as a new version is ready, and `src/lib/updates.ts` looks for one when the app opens, returns to the foreground or regains a connection (never while someone is typing), then reloads onto it. A release therefore reaches an installed app without reinstalling.
+
 ## Production direction
 
 See `/blueprint`: modular-monolith API (Node.js and PostgreSQL), access enforced by row-level security (booking confirmed and consent not withdrawn), durable workflows for the reliability engine, HL7 FHIR R4 at the edges, bought-in SMS, video and M-Pesa, and compliance with the Data Protection Act 2019 and the Digital Health Act 2023. The legal and clinical operating model, ODPC registration and data residency must be confirmed with Kenyan counsel before real patients are onboarded.

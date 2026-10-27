@@ -3,3 +3,5 @@ dist
 .vercel
 *.local
 *.tsbuildinfo
+video/dist/*.wav
+video/dist/*.jpg

@@ -5,6 +5,9 @@ import App from "./App";
 import { StoreProvider } from "./store/store";
 import "@fontsource-variable/inter";
 import "./index.css";
+import { keepAppUpdated } from "./lib/updates";
+
+keepAppUpdated();
 
 createRoot(document.getElementById("root")!).render(
   <StrictMode>

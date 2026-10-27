@@ -1,0 +1,15 @@
+{
+  "voice": "Microsoft Zira Desktop",
+  "lines": [
+    { "id": "a", "scene": "intro",    "text": "Hi, I'm Dr. Afya. Here's how AfyaConnect works." },
+    { "id": "b", "scene": "intro",    "text": "We help you see a specialist, and keep your whole care journey in one place." },
+    { "id": "c", "scene": "register", "text": "One. Register with your phone number and ID. It takes about two minutes." },
+    { "id": "d", "scene": "book",     "text": "Two. Choose a verified specialist, pick a time, and send your booking request." },
+    { "id": "e", "scene": "confirm",  "text": "Three. Your doctor confirms, and you both get the video link, with reminders by text message and in the app." },
+    { "id": "f", "scene": "record",   "text": "Four. After your visit, the summary and your prescription are added to your health record." },
+    { "id": "g", "scene": "record",   "text": "A doctor can open your file only after confirming your booking, and you can turn that off at any time." },
+    { "id": "h", "scene": "pharmacy", "text": "Five. We keep reminding you until you choose the pharmacy you prefer." },
+    { "id": "i", "scene": "nav",      "text": "You will find everything in these tabs: Home, Appointments, Health record, and your care plan." },
+    { "id": "j", "scene": "outro",    "text": "Ready? Tap Create your account. See you inside!" }
+  ]
+}

@@ -32,7 +32,15 @@ export default defineConfig({
         cleanupOutdatedCaches: true,
         maximumFileSizeToCacheInBytes: 3 * 1024 * 1024,
         // Photos are cached as they are viewed rather than precached, to keep the first visit light on data.
-        runtimeCaching: [{ urlPattern: /\/img\/.*\.webp$/, handler: "CacheFirst", options: { cacheName: "photos", expiration: { maxEntries: 40 } } }],
+        // A new version takes over the moment it is ready, so installed apps never sit on an old release.
+        skipWaiting: true,
+        clientsClaim: true,
+        runtimeCaching: [
+          { urlPattern: /\/img\/.*\.webp$/, handler: "CacheFirst", options: { cacheName: "photos", expiration: { maxEntries: 40 } } },
+          // The explainer video and its captions are cached once watched (file names carry a version, so a new cut is a new file).
+          // rangeRequests lets the video element seek and play from the cached full file while offline.
+          { urlPattern: /\/video\/.*\.(mp4|vtt)$/, handler: "CacheFirst", options: { cacheName: "explainer", rangeRequests: true, cacheableResponse: { statuses: [200] }, expiration: { maxEntries: 4 } } },
+        ],
       },
     }),
   ],

@@ -1,11 +1,12 @@
 import {
-  Activity, ArrowRight, BadgeCheck, Bell, BellRing, Brain, CheckCircle2, Eye, FileText, FlaskConical, Globe2, HeartHandshake, HeartPulse, LayoutDashboard, Link2,
-  Languages, Lock, Phone, Pill, Search, ShieldCheck, Smartphone, Stethoscope, Users, Video, Wifi,
+  Activity, ArrowRight, BadgeCheck, Bell, Brain, CheckCircle2, Eye, FileText, FlaskConical, Globe2, HeartHandshake, HeartPulse, LayoutDashboard,
+  Languages, Lock, Phone, Pill, Search, ShieldCheck, Smartphone, Stethoscope, Users, Wifi,
 } from "lucide-react";
 import { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { BookingModal, SpecialistCard } from "../../components/Booking";
 import CareFlow from "../../components/CareFlow";
+import ExplainerVideo from "../../components/ExplainerVideo";
 import Simulator from "../../components/Simulator";
 import { Avatar } from "../../components/ui";
 import { pathways, specialists, type Specialist } from "../../data/seed";
@@ -47,56 +48,6 @@ function HelpTiles() {
   );
 }
 
-function HeroPhone() {
-  return (
-    <div className="relative mx-auto hidden w-full max-w-[340px] sm:block">
-      <div className="absolute -left-16 top-20 hidden w-56 rounded-2xl bg-white p-3.5 shadow-lift ring-1 ring-line animate-rise sm:block" style={{ animationDelay: ".3s", animationFillMode: "backwards" }}>
-        <p className="flex items-center gap-2 text-[13px] font-bold text-ink"><Link2 size={15} className="text-brand-600" /> Video link sent</p>
-        <p className="mt-1 text-xs text-ink-mute">To you and Dr Amina, by SMS and in the app.</p>
-      </div>
-      <div className="absolute -right-12 bottom-24 hidden w-52 rounded-2xl bg-white p-3.5 shadow-lift ring-1 ring-line animate-rise sm:block" style={{ animationDelay: ".5s", animationFillMode: "backwards" }}>
-        <p className="flex items-center gap-2 text-[13px] font-bold text-ink"><BellRing size={15} className="text-orange-600" /> Reminder in 2 hours</p>
-        <p className="mt-1 text-xs text-ink-mute">Your visit with Dr Amina. Video link attached.</p>
-      </div>
-      <div className="rounded-[2.6rem] bg-ink p-3 shadow-2xl shadow-black/40 ring-1 ring-white/10">
-        <div className="overflow-hidden rounded-[2.1rem] bg-canvas text-ink">
-          <div className="flex justify-between px-6 pb-1 pt-3 text-[11px] font-semibold">
-            <span>10:28</span><span className="h-5 w-20 rounded-full bg-ink" /><span>4G</span>
-          </div>
-          <div className="space-y-3 p-4">
-            <div>
-              <p className="text-xs text-ink-mute">Good morning,</p>
-              <p className="text-lg font-bold">Grace</p>
-            </div>
-            <div className="rounded-2xl bg-white p-4 shadow-card ring-1 ring-line">
-              <div className="flex items-center gap-3">
-                <Avatar name="Amina Odhiambo" hue={168} size={42} />
-                <div className="min-w-0">
-                  <p className="truncate text-sm font-bold">Dr. Amina Odhiambo</p>
-                  <p className="text-xs text-ink-mute">Rheumatology · 10:30 · Video</p>
-                </div>
-              </div>
-              <div className="mt-3 grid grid-cols-5 gap-1">
-                {[1, 1, 1, 1, 0].map((on, i) => <span key={i} className={`h-1.5 rounded-full ${on ? "bg-brand-500" : "bg-line"}`} />)}
-              </div>
-              <p className="mt-3 flex items-center gap-2 rounded-xl bg-emerald-50 px-3 py-2 text-xs font-semibold text-emerald-800"><CheckCircle2 size={14} /> Your doctor is ready</p>
-              <button className="mt-3 flex w-full items-center justify-center gap-2 rounded-xl bg-brand-600 py-2.5 text-sm font-semibold text-white"><Video size={15} /> Join consultation</button>
-            </div>
-            <div className="rounded-2xl bg-white p-4 shadow-card ring-1 ring-line">
-              <p className="text-xs font-semibold uppercase tracking-wide text-ink-mute">Lupus care plan</p>
-              {[["Kidney panel", "Done"], ["Rheumatology review", "Today"], ["Eye screening", "In 19 days"]].map(([a, b]) => (
-                <div key={a} className="mt-2 flex items-center justify-between text-[13px]">
-                  <span className="font-medium">{a}</span><span className="text-ink-mute">{b}</span>
-                </div>
-              ))}
-            </div>
-          </div>
-        </div>
-      </div>
-    </div>
-  );
-}
-
 const portals = [
   { icon: Smartphone, title: "Patients", body: "Register with your ID, book, join by video link, keep your health record and get prescription reminders.", to: "/app/patient", tint: "bg-brand-50 text-brand-700" },
   { icon: Stethoscope, title: "Specialists & clinics", body: "Confirm bookings, share the video link, open the patient file once confirmed, write summaries and prescriptions.", to: "/app/specialist", tint: "bg-sky2-50 text-sky2-600" },
@@ -134,18 +85,24 @@ export default function Home() {
           </svg>
           <div className="absolute inset-x-0 bottom-0 h-24 bg-gradient-to-b from-transparent to-white/0" />
         </div>
-        <div className="container-x relative grid items-center gap-14 pb-24 pt-14 sm:pb-28 sm:pt-20 lg:grid-cols-[1.15fr_1fr] lg:pb-32 lg:pt-24">
-          <div>
+        {/* On a phone the order is headline, video, buttons; on a wide screen the text sits left and the video right. */}
+        <div className="container-x relative grid gap-x-14 gap-y-8 pb-24 pt-12 sm:pb-28 sm:pt-20 lg:grid-cols-[1.15fr_1fr] lg:pb-32 lg:pt-24">
+          <div className="lg:col-start-1 lg:row-start-1 lg:self-end">
             <p className="inline-flex items-center gap-2 rounded-full bg-white/10 px-3 py-1.5 text-[13px] font-semibold text-brand-100 ring-1 ring-white/20 backdrop-blur">
               <HeartHandshake size={15} /> Chronic-care coordination for Kenya
             </p>
             <h1 className="mt-5 text-[40px] font-extrabold leading-[1.05] tracking-[-0.035em] text-white sm:text-6xl">
               Care that <span className="bg-gradient-to-r from-brand-200 to-[#9ee7ff] bg-clip-text text-transparent">shows up</span>, every time you need it.
             </h1>
-            <p className="mt-5 max-w-xl text-lg leading-relaxed text-white/80">
-              Most directories help you find a doctor. We help you through the whole journey: finding a specialist, sharing your history once, coordinating your clinicians and knowing what to do next.
+            <p className="mt-4 max-w-xl text-base leading-relaxed text-white/80 sm:mt-5 sm:text-lg">
+              Meet a verified specialist, keep your history in one place and always know your next step. Watch Dr. Afya show you how.
             </p>
-            <div className="mt-8 flex flex-wrap gap-3">
+          </div>
+          <div className="lg:col-start-2 lg:row-span-2 lg:row-start-1 lg:self-center">
+            <ExplainerVideo />
+          </div>
+          <div className="lg:col-start-1 lg:row-start-2 lg:self-start">
+            <div className="flex flex-wrap gap-3">
               <Link to={registered ? "/app/patient" : "/register"} className="inline-flex h-12 items-center gap-2 rounded-xl bg-white px-6 font-semibold text-brand-800 shadow-lg shadow-black/10 hover:bg-brand-50 focus-ring">
                 {registered ? "Open my account" : "Create your account"} <ArrowRight size={18} />
               </Link>
@@ -160,22 +117,7 @@ export default function Home() {
               </div>
               <p className="text-sm leading-snug text-white/75"><b className="text-white">Verified specialists</b><br />across 8 counties, on video or in person</p>
             </div>
-            <dl className="mt-10 grid max-w-xl grid-cols-3 gap-4 border-t border-white/15 pt-6">
-              {[["60 min", "readiness check before every consult"], ["20 min", "max delay before recovery kicks in"], ["0", "patients left without a next step"]].map(([v, l]) => (
-                <div key={l}>
-                  <dt className="text-2xl font-extrabold tracking-tight text-white sm:text-3xl">{v}</dt>
-                  <dd className="mt-1 text-[13px] leading-snug text-white/65">{l}</dd>
-                </div>
-              ))}
-            </dl>
-            <div className="relative mt-8 overflow-hidden rounded-3xl ring-1 ring-white/20 sm:hidden">
-              <img src="/img/hero-doctor.webp" alt="A smiling doctor" loading="lazy" decoding="async" className="aspect-[4/3] w-full object-cover object-top" />
-              <div className="absolute inset-0 bg-gradient-to-t from-[#04403c]/80 via-transparent to-transparent" />
-              <span className="absolute left-3 top-3 inline-flex items-center gap-1.5 rounded-full bg-white px-3 py-1.5 text-xs font-bold text-ink shadow"><Link2 size={13} className="text-brand-600" /> Video link sent</span>
-              <span className="absolute bottom-3 left-3 right-3 flex items-center gap-2 rounded-2xl bg-white/95 px-3 py-2.5 text-xs font-semibold text-ink shadow"><CheckCircle2 size={15} className="shrink-0 text-emerald-600" /> Dr. Amina confirmed your visit · reminders set for you both</span>
-            </div>
           </div>
-          <HeroPhone />
         </div>
       </section>
 
